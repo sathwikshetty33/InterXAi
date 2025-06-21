@@ -389,14 +389,20 @@ class ResendResetCodeAPIView(APIView):
     authentication_classes = [] 
     
     def post(self, request):
-        email = request.data.get('email')
-        
-        if not email:
+        username = request.data.get('username')
+
+        if not username:
             return Response({
                 'success': False,
-                'error': 'Email is required'
+                'error': 'Username is required'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+        user = User.objects.filter(username=username).first()
+        if not user:
+            return Response({
+                'success': False,
+                'error': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        email = user.email
         try:
             # Find existing password reset verification
             verification = VerificationCode.objects.filter(
@@ -464,7 +470,6 @@ class ResetPasswordAPIView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             try:
-                # Find the verification record using reset_token (verification ID)
                 verification = VerificationCode.objects.get(
                     id=reset_token,
                     verification_type='password_reset',
