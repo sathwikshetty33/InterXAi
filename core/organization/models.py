@@ -8,7 +8,7 @@ class organization(models.Model):
     org = models.ForeignKey(User, on_delete=models.CASCADE)
     orgname = models.CharField(max_length=100)
     address = models.TextField()
-    photo = models.ImageField(upload_to='./orgs',null=True,blank=True)
+    photo = models.CharField
     Description = models.TextField()
     def __str__(self):
         return self.orgname
