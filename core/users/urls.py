@@ -11,5 +11,7 @@ urlpatterns = [
     path('verify-reset-code/', views.VerifyResetCodeAPIView.as_view(), name='api_verify_reset_code'),
     path('resend-reset-code/', views.ResendResetCodeAPIView.as_view(), name='api_resend_reset_code'),
     path('reset-password/', views.ResetPasswordAPIView.as_view(), name='api_reset_password'),
-    path('profile/', views.EditProfileAPIView.as_view(), name='api_edit_profile'),
+    path('profile/<int:id>/', views.ProfileAPIView.as_view(), name='api_profile'),
+    path('profile/', views.ProfileAPIView.as_view(), name='api_edit_profile'),
+    path('check-user/<int:id>/', views.checkUser.as_view(), name='api_check_user'),
 ]
