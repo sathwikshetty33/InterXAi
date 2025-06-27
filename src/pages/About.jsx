@@ -7,7 +7,7 @@ import {
   Layers, GitBranch, Gauge, Shield, Lightbulb,
   PieChart, Activity, BookOpen, Medal
 } from 'lucide-react';
-import Header from '../components/Header';
+import Header from '../components/header';
 import Footer from '../components/Footer';
 
 const About = () => {
