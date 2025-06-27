@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import login, authenticate, logout
 from django.utils import timezone
 from datetime import  timedelta
-# from .forms import *
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from .utils import *
 from django.views.decorators.csrf import csrf_exempt
@@ -14,6 +14,7 @@ from organization.models import *
 from .serializers import *  
 import json
 from users.models import *
+from django.shortcuts import get_object_or_404
 @method_decorator(csrf_exempt, name='dispatch')
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
@@ -132,7 +133,8 @@ class VerifyEmailAPIView(APIView):
                     email=user_data['email'],
                     password=user_data['password']
                 )
-                
+                obj = UserProfile.objects.create(user=user)
+                obj.save()
                 # Create authentication token
                 token, created = Token.objects.get_or_create(user=user)
                 
@@ -519,31 +521,37 @@ class ResetPasswordAPIView(APIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
-class EditProfileAPIView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = [] 
-    
-    def get(self, request):
-        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+
+class ProfileAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_authenticators(self):
+        if self.request.method == 'GET':
+            return []  # Disable authentication for GET
+        return super().get_authenticators()
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return super().get_permissions()
+
+    def get(self, request, id):
+        user_profile = get_object_or_404(UserProfile, id=id)
         serializer = UserProfileSerializer(user_profile)
         return Response({
             'success': True,
             'profile': serializer.data
         }, status=status.HTTP_200_OK)
-    
-    def post(self, request):
-        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    def put(self, request):
+        user_profile = get_object_or_404(UserProfile, user=request.user)
         serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
         
         if serializer.is_valid():
             profile = serializer.save()
-            profile.user = request.user
-            
-            # Handle file upload
-            if 'photo' in request.FILES:
-                profile.photo = request.FILES['photo']
-                profile.save()
-            
+            profile.user = request.user  # Optional: Ensure user is set if serializer doesn't
             return Response({
                 'success': True,
                 'message': 'Profile updated successfully',
@@ -554,3 +562,20 @@ class EditProfileAPIView(APIView):
             'success': False,
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+class checkUser(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated] 
+
+    def get(self, request, id):
+        profile = get_object_or_404(UserProfile, id=id)
+        if profile.user == request.user:
+            return Response({
+                'success': True,
+                'message': 'User is authenticated'
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'success': False,
+                'message': 'User is not authenticated'
+            }, status=status.HTTP_403_FORBIDDEN)

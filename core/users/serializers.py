@@ -39,10 +39,3 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = '__all__'
         read_only_fields = ('user',)
-    
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        # Handle photo URL properly
-        if instance.photo:
-            data['photo_url'] = instance.photo.url
-        return data
