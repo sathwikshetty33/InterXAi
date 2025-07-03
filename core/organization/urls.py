@@ -6,4 +6,5 @@ urlpatterns = [
     path('org/<int:id>/', views.Organization.as_view(), name='organization_detail'),
     path('update/', views.Organization.as_view(), name='organization_update'),
     path('get-org-id/', views.getOrganizationId.as_view(), name='organization_get'),
+    path('is-org/', views.isOrganization.as_view(), name='organization_check'),
 ]
