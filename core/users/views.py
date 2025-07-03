@@ -579,3 +579,29 @@ class checkUser(APIView):
                 'success': False,
                 'message': 'User is not authenticated'
             }, status=status.HTTP_403_FORBIDDEN)
+        
+class getId(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated] 
+
+    def get(self, request):
+        user = request.user
+        try:
+            user_profile = UserProfile.objects.get(user=user)
+        except UserProfile.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'User profile does not exist'
+            }, status=status.HTTP_404_NOT_FOUND)
+        if user.is_authenticated:
+            return Response({
+                'success': True,
+                'profile_id': user_profile.id,
+                'username': user.username,
+                'email': user.email
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'success': False,
+                'message': 'User is not authenticated'
+            }, status=status.HTTP_403_FORBIDDEN)
