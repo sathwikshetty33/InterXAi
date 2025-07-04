@@ -37,29 +37,49 @@ const Login = () => {
 
   const handleLogin = async () => {
     setIsLoading(true);
-    
+  
     try {
-      // Simulate API delay for demo
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
       const res = await fetch(`${baseUrl}login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-
+  
       const data = await res.json();
+  
       if (res.ok) {
-        showMessage('Login successful!', 'success');
+        // 1. Store the token
+        localStorage.setItem("authToken", data.token);
+  
+        // 2. Fetch profile_id from /get-id/
+        const idRes = await fetch("http://localhost:8000/api/users/get-id/", {
+          headers: {
+            Authorization: `Token ${data.token}`,
+          },
+        });
+  
+        const idData = await idRes.json();
+  
+        if (idRes.ok && idData.profile_id) {
+          showMessage('Login successful!', 'success');
+  
+          // 3. Redirect to dashboard
+          window.location.href = `/profile/${idData.profile_id}`;
+        } else {
+          showMessage('Failed to retrieve profile ID.', 'error');
+        }
+  
       } else {
         showMessage(data.detail || 'Login failed', 'error');
       }
     } catch (error) {
+      console.error(error);
       showMessage('Server error', 'error');
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   const handleForgotPassword = async () => {
     setIsLoading(true);
