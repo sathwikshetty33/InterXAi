@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../components/header';
+import Header from '../components/ui/header';
 import Footer from '../components/ui/footer';
-import LoginForm from '../components/LoginForm';
-import ForgotPasswordForm from '../components/ForgotPasswordForm';
-import MessageNotification from '../components/MessageNotification';
-import FormContainer from '../components/FormContainer';
+import LoginForm from '../components/forms/LoginForm';
+import ForgotPasswordForm from '../components/forms/ForgotPasswordForm';
+import MessageNotification from '../components/ui/MessageNotification';
+import FormContainer from '../components/ui/FormContainer';
 
 const baseUrl = 'http://localhost:8000/api/users/';
 
