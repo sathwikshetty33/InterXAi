@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getAuthToken, fetchWithToken } from "../utils/handleToken";
 import { useParams, useNavigate } from "react-router-dom";
-import Header from '../components/header';
-import Footer from '../components/footer';
+import { getAuthToken, fetchWithToken } from "../utils/handleToken";
+import Header from "../components/header";
+import Footer from "../components/footer";
 import { Loader2, Github, Brain, Pencil } from "lucide-react";
 
 export default function UserDashboard() {
@@ -15,26 +15,50 @@ export default function UserDashboard() {
   const [visible, setVisible] = useState(false);
   const [editingField, setEditingField] = useState(null);
   const [formData, setFormData] = useState({});
+  const [viewerType, setViewerType] = useState("guest"); // 'owner', 'authenticated', 'guest'
 
   useEffect(() => {
     const fetchProfile = async () => {
       const token = getAuthToken();
+  
+      // Fetch profile (publicly available)
       const data = await fetchWithToken(
         `http://localhost:8000/api/users/profile/${id}/`,
         token,
         navigate
       );
-
+  
       if (data) {
         setProfile(data.profile);
         setFormData(data.profile);
         setTimeout(() => setVisible(true), 200);
       }
+  
+      // Determine viewer type
+      if (token) {
+        try {
+          const res = await fetch(`http://localhost:8000/api/users/check-user/${id}/`, {
+            headers: {
+              Authorization: `Token ${token}`,
+            },
+          });
+  
+          const result = await res.json();
+          setViewerType(res.ok && result.success ? "owner" : "authenticated");
+        } catch {
+          setViewerType("guest");
+        }
+      } else {
+        // 🚨 Important: fallback to guest if no token
+        setViewerType("guest");
+      }
+  
       setLoading(false);
     };
-
+  
     fetchProfile();
   }, [id, navigate]);
+  
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -86,17 +110,15 @@ export default function UserDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
-      <Header />
+      <Header viewerType={viewerType} />
 
       <div className="flex flex-col items-center justify-center py-16 px-4 relative z-10">
-        <div className={`max-w-6xl w-full transform transition-all duration-1000 ${
-          visible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}>
+        <div className={`max-w-6xl w-full transform transition-all duration-1000 ${visible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <div className="bg-slate-800/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-700/50 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-400/50 to-transparent animate-shimmer"></div>
 
             <div className="flex flex-col items-center space-y-4">
-              {editingField === "photo" ? (
+              {viewerType === "owner" && editingField === "photo" ? (
                 <div className="flex flex-col items-center">
                   <input
                     type="text"
@@ -111,8 +133,8 @@ export default function UserDashboard() {
                 <img
                   src={profile.photo}
                   alt="User Profile"
-                  className="w-24 h-24 rounded-full border-2 border-purple-500 shadow-lg cursor-pointer"
-                  onClick={() => setEditingField("photo")}
+                  className={`w-24 h-24 rounded-full border-2 border-purple-500 shadow-lg ${viewerType === "owner" ? "cursor-pointer" : ""}`}
+                  onClick={() => viewerType === "owner" && setEditingField("photo")}
                 />
               )}
 
@@ -121,7 +143,7 @@ export default function UserDashboard() {
               </h1>
 
               <div className="text-center">
-                {editingField === "bio" ? (
+                {viewerType === "owner" && editingField === "bio" ? (
                   <div className="space-y-2">
                     <textarea
                       name="bio"
@@ -134,7 +156,7 @@ export default function UserDashboard() {
                 ) : (
                   <p className="text-sm text-slate-400 flex items-center gap-2">
                     {profile.bio || "This user has not added a bio."}
-                    <Pencil className="w-4 h-4 cursor-pointer" onClick={() => setEditingField("bio")} />
+                    {viewerType === "owner" && <Pencil className="w-4 h-4 cursor-pointer" onClick={() => setEditingField("bio")} />}
                   </p>
                 )}
               </div>
@@ -144,11 +166,11 @@ export default function UserDashboard() {
                 <div className="bg-[#0d1117] border border-gray-700 rounded-2xl shadow-xl p-4">
                   <h3 className="text-white text-lg font-semibold mb-2 flex items-center gap-2">
                     <Github className="w-5 h-5" /> GitHub Stats
-                    {editingField !== "github" && (
+                    {viewerType === "owner" && editingField !== "github" && (
                       <Pencil className="w-4 h-4 cursor-pointer ml-auto" onClick={() => setEditingField("github")} />
                     )}
                   </h3>
-                  {editingField === "github" ? (
+                  {viewerType === "owner" && editingField === "github" ? (
                     <div className="space-y-2">
                       <input
                         name="github"
@@ -184,11 +206,11 @@ export default function UserDashboard() {
                 <div className="bg-[#1d1d1f] border border-yellow-500/30 rounded-2xl shadow-xl p-4">
                   <h3 className="text-white text-lg font-semibold mb-2 flex items-center gap-2">
                     <Brain className="w-5 h-5 text-yellow-400" /> LeetCode Stats
-                    {editingField !== "leetcode" && (
+                    {viewerType === "owner" && editingField !== "leetcode" && (
                       <Pencil className="w-4 h-4 cursor-pointer ml-auto" onClick={() => setEditingField("leetcode")} />
                     )}
                   </h3>
-                  {editingField === "leetcode" ? (
+                  {viewerType === "owner" && editingField === "leetcode" ? (
                     <div className="space-y-2">
                       <input
                         name="leetcode"
@@ -220,7 +242,6 @@ export default function UserDashboard() {
                   )}
                 </div>
               </div>
-
             </div>
           </div>
         </div>
@@ -230,8 +251,12 @@ export default function UserDashboard() {
 
       <style jsx>{`
         @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
         }
         .animate-shimmer {
           animation: shimmer 3s infinite;

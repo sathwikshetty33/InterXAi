@@ -1,33 +1,34 @@
 // utils/handleToken.js
 import axios from 'axios';
 
+// ✅ Get token from localStorage
 export const getAuthToken = () => {
   return localStorage.getItem("authToken");
 };
 
+// ✅ Safe fetch with or without token — supports public + private routes
 export const fetchWithToken = async (url, token, navigate) => {
-  if (!token) {
-    alert("No token found. Please login first.");
-    navigate("/login");
-    return null;
-  }
-
   try {
-    const response = await axios.get(url, {
-      headers: {
-        Authorization: `Token ${token}`,
-      },
-    });
+    const headers = token ? { Authorization: `Token ${token}` } : {};
+
+    const response = await axios.get(url, { headers });
+
     return response.data;
   } catch (error) {
-    console.error("Failed to fetch:", error);
-    alert("Invalid or expired token. Please login again.");
-    navigate("/login");
+    if (token) {
+      // Token exists but invalid
+      console.error("Invalid token or expired:", error);
+      localStorage.removeItem("authToken");
+      navigate("/login");
+    } else {
+      // Token is missing — assume guest, no alert
+      console.warn("No token provided. Viewing as guest.");
+    }
     return null;
   }
 };
 
-// ✅ Add this function for login + token + navigation
+// ✅ Token handler: login + fetch ID + redirect
 export const handleToken = async (username, password, navigate) => {
   try {
     const res = await fetch('http://localhost:8000/api/users/login/', {
@@ -42,8 +43,10 @@ export const handleToken = async (username, password, navigate) => {
       return false;
     }
 
+    // Save token
     localStorage.setItem('authToken', data.token);
 
+    // Fetch user ID using token
     const idRes = await fetch('http://localhost:8000/api/users/get-id/', {
       headers: { Authorization: `Token ${data.token}` },
     });
@@ -54,7 +57,7 @@ export const handleToken = async (username, password, navigate) => {
       return false;
     }
 
-    // ✅ Navigate to the profile dashboard
+    // ✅ Redirect to profile
     navigate(`/profile/${idData.profile_id}`);
     return true;
   } catch (error) {
