@@ -33,9 +33,11 @@ class ResetPasswordSerializer(serializers.Serializer):
     password1 = serializers.CharField(min_length=8, write_only=True)
     password2 = serializers.CharField(min_length=8, write_only=True)
 
-
 class UserProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
     class Meta:
         model = UserProfile
         fields = '__all__'
         read_only_fields = ('user',)
+

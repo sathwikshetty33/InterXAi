@@ -93,3 +93,16 @@ class getOrganizationId(APIView):
             return Response({"organization_id": org.id}, status=status.HTTP_200_OK)
         else:
             return Response({"error": "User is not an organization"}, status=status.HTTP_400_BAD_REQUEST)
+
+class checkOrganization(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request,id):
+        try:
+            org = organization.objects.get(id=id)
+            if org.org != request.user:
+                return Response({"error": "You do not have permission to view this organization"}, status=status.HTTP_403_FORBIDDEN)
+        except organization.DoesNotExist:
+            return Response({"is_organization": False}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"is_organization": True}, status=status.HTTP_200_OK)
