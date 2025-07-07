@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getAuthToken, fetchWithToken } from "../utils/handleToken";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from '../components/header';
-import Footer from '../components/Footer';
-import { Loader2, Github, Brain } from "lucide-react";
+import Footer from '../components/footer';
+import { Loader2, Github, Brain, Pencil } from "lucide-react";
 
 export default function UserDashboard() {
   const { id } = useParams();
@@ -13,38 +13,57 @@ export default function UserDashboard() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(false);
+  const [editingField, setEditingField] = useState(null);
+  const [formData, setFormData] = useState({});
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        alert("No token found. Please login first.");
-        navigate("/login");
-        return;
-      }
+      const token = getAuthToken();
+      const data = await fetchWithToken(
+        `http://localhost:8000/api/users/profile/${id}/`,
+        token,
+        navigate
+      );
 
-      try {
-        const response = await axios.get(
-          `http://localhost:8000/api/users/profile/${id}/`,
-          {
-            headers: {
-              Authorization: `Token ${token}`,
-            },
-          }
-        );
-        setProfile(response.data.profile);
+      if (data) {
+        setProfile(data.profile);
+        setFormData(data.profile);
         setTimeout(() => setVisible(true), 200);
-      } catch (error) {
-        console.error("Failed to fetch profile:", error);
-        alert("Invalid or expired token. Please login again.");
-        navigate("/login");
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchProfile();
   }, [id, navigate]);
+
+  const handleChange = (e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSave = async (field) => {
+    const token = getAuthToken();
+    try {
+      const response = await fetch("http://localhost:8000/api/users/profile/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Token ${token}`,
+        },
+        body: JSON.stringify({ [field]: formData[field] }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setProfile((prev) => ({ ...prev, [field]: formData[field] }));
+        setEditingField(null);
+      } else {
+        alert("Update failed: " + JSON.stringify(data.errors));
+      }
+    } catch (error) {
+      alert("Server error while updating.");
+    }
+  };
 
   const githubUsername = profile?.github || "";
   const leetcodeUsername = profile?.leetcode || "";
@@ -77,66 +96,129 @@ export default function UserDashboard() {
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-400/50 to-transparent animate-shimmer"></div>
 
             <div className="flex flex-col items-center space-y-4">
-              <img
-                src={profile.photo || "/default-profile.png"}
-                alt="User Profile"
-                className="w-24 h-24 rounded-full border-2 border-purple-500 shadow-lg"
-              />
-              <h1 className="text-2xl font-bold">@{profile.username || "Anonymous"}</h1>
-              <p className="text-sm text-slate-400 text-center">
-                {profile.bio || "This user has not added a bio."}
-              </p>
+              {editingField === "photo" ? (
+                <div className="flex flex-col items-center">
+                  <input
+                    type="text"
+                    name="photo"
+                    value={formData.photo}
+                    onChange={handleChange}
+                    className="bg-slate-700 text-white p-2 rounded mb-2"
+                  />
+                  <button onClick={() => handleSave("photo")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
+                </div>
+              ) : (
+                <img
+                  src={profile.photo}
+                  alt="User Profile"
+                  className="w-24 h-24 rounded-full border-2 border-purple-500 shadow-lg cursor-pointer"
+                  onClick={() => setEditingField("photo")}
+                />
+              )}
+
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                @{profile.username || "Anonymous"}
+              </h1>
+
+              <div className="text-center">
+                {editingField === "bio" ? (
+                  <div className="space-y-2">
+                    <textarea
+                      name="bio"
+                      value={formData.bio}
+                      onChange={handleChange}
+                      className="bg-slate-700 text-white p-2 rounded w-full"
+                    />
+                    <button onClick={() => handleSave("bio")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400 flex items-center gap-2">
+                    {profile.bio || "This user has not added a bio."}
+                    <Pencil className="w-4 h-4 cursor-pointer" onClick={() => setEditingField("bio")} />
+                  </p>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full mt-6">
                 {/* GitHub Card */}
-                {githubUsername && (
-                  <div className="bg-[#0d1117] border border-gray-700 rounded-2xl shadow-xl p-4">
-                    <h3 className="text-white text-lg font-semibold mb-2 flex items-center gap-2">
-                      <Github className="w-5 h-5" /> GitHub Stats
-                    </h3>
-                    <p className="text-sm text-slate-400 mb-2">Username:</p>
-                    <a
-                      href={`https://github.com/${githubUsername}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline break-all"
-                    >
-                      {githubUsername}
-                    </a>
-                    <div className="mt-4 rounded-xl overflow-hidden">
-                      <img
-                        src={`https://github-readme-stats.vercel.app/api?username=${githubUsername}&show_icons=true&theme=github_dark`}
-                        alt="GitHub Stats"
-                        className="w-full object-cover"
+                <div className="bg-[#0d1117] border border-gray-700 rounded-2xl shadow-xl p-4">
+                  <h3 className="text-white text-lg font-semibold mb-2 flex items-center gap-2">
+                    <Github className="w-5 h-5" /> GitHub Stats
+                    {editingField !== "github" && (
+                      <Pencil className="w-4 h-4 cursor-pointer ml-auto" onClick={() => setEditingField("github")} />
+                    )}
+                  </h3>
+                  {editingField === "github" ? (
+                    <div className="space-y-2">
+                      <input
+                        name="github"
+                        value={formData.github}
+                        onChange={handleChange}
+                        className="bg-slate-700 text-white p-2 rounded w-full"
                       />
+                      <button onClick={() => handleSave("github")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <>
+                      <p className="text-sm text-slate-400 mb-2">Username:</p>
+                      <a
+                        href={`https://github.com/${githubUsername}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline break-all"
+                      >
+                        {githubUsername}
+                      </a>
+                      <div className="mt-4 rounded-xl overflow-hidden">
+                        <img
+                          src={`https://github-readme-stats.vercel.app/api?username=${githubUsername}&show_icons=true&theme=github_dark`}
+                          alt="GitHub Stats"
+                          className="w-full object-cover"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 {/* LeetCode Card */}
-                {leetcodeUsername && (
-                  <div className="bg-[#1d1d1f] border border-yellow-500/30 rounded-2xl shadow-xl p-4">
-                    <h3 className="text-white text-lg font-semibold mb-2 flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-yellow-400" /> LeetCode Stats
-                    </h3>
-                    <p className="text-sm text-slate-400 mb-2">Username:</p>
-                    <a
-                      href={`https://leetcode.com/${leetcodeUsername}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-yellow-400 hover:underline break-all"
-                    >
-                      {leetcodeUsername}
-                    </a>
-                    <div className="mt-4 rounded-xl overflow-hidden">
-                      <img
-                        src={`https://leetcard.jacoblin.cool/${leetcodeUsername}?theme=dark&font=baloo&show_rank=true`}
-                        alt="LeetCode Card"
-                        className="w-full object-cover"
+                <div className="bg-[#1d1d1f] border border-yellow-500/30 rounded-2xl shadow-xl p-4">
+                  <h3 className="text-white text-lg font-semibold mb-2 flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-yellow-400" /> LeetCode Stats
+                    {editingField !== "leetcode" && (
+                      <Pencil className="w-4 h-4 cursor-pointer ml-auto" onClick={() => setEditingField("leetcode")} />
+                    )}
+                  </h3>
+                  {editingField === "leetcode" ? (
+                    <div className="space-y-2">
+                      <input
+                        name="leetcode"
+                        value={formData.leetcode}
+                        onChange={handleChange}
+                        className="bg-slate-700 text-white p-2 rounded w-full"
                       />
+                      <button onClick={() => handleSave("leetcode")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <>
+                      <p className="text-sm text-slate-400 mb-2">Username:</p>
+                      <a
+                        href={`https://leetcode.com/${leetcodeUsername}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-yellow-400 hover:underline break-all"
+                      >
+                        {leetcodeUsername}
+                      </a>
+                      <div className="mt-4 rounded-xl overflow-hidden">
+                        <img
+                          src={`https://leetcard.jacoblin.cool/${leetcodeUsername}?theme=dark&font=baloo&show_rank=true`}
+                          alt="LeetCode Card"
+                          className="w-full object-cover"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
             </div>
