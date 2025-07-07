@@ -6,6 +6,7 @@ import EmailVerification from '../components/forms/EmailVerification';
 import NotificationMessage from '../components/ui/NotificationMessage';
 import BackgroundEffects from '../components/ui/BackgroundEffects';
 import CustomStyles from '../components/ui/CustomStyles';
+import { useNavigate } from 'react-router-dom';
 
 const baseUrl = 'http://localhost:8000/api/users/';
 
@@ -23,6 +24,7 @@ const SignUp = () => {
   const [verificationMode, setVerificationMode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationId, setVerificationId] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsVisible(true);
@@ -104,7 +106,20 @@ const SignUp = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showMessage('Account created successfully! You can now login.', 'success');
+        if (response.ok) {
+          showMessage('Account created successfully! Redirecting...', 'success');
+        
+          // ✅ Save token for profile setup access
+          localStorage.setItem("authToken", data.token);
+          sessionStorage.setItem("email", email);
+          sessionStorage.setItem("password", password); // <-- Add this too if you use session fallback
+        
+          setTimeout(() => {
+            navigate(`/profile-setup`);
+          }, 1500);
+        }
+        
+
         setVerificationMode(false);
         setUsername('');
         setEmail('');
