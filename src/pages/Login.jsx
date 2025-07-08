@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../components/header';
+import Header from '../components/ui/header';
 import Footer from '../components/ui/footer';
 import LoginForm from '../components/forms/LoginForm';
 import ForgotPasswordForm from '../components/forms/ForgotPasswordForm';

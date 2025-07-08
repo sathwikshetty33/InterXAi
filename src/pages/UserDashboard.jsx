@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAuthToken, fetchWithToken } from "../utils/handleToken";
-import Header from "../components/header";
-import Footer from "../components/footer";
+import Header from '../components/ui/header';
+import Footer from '../components/ui/footer';
 import { Loader2, Github, Brain, Pencil } from "lucide-react";
 
 export default function UserDashboard() {

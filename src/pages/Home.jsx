@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, ArrowRight, Star, Users, Trophy, Zap, MessageCircle, Brain, Target } from 'lucide-react';
-import Header from '../components/header';
-import Footer from '../components/Footer';
+import Header from '../components/ui/header';
+import Footer from '../components/ui/footer';
 import { getAuthToken } from '../utils/handleToken';
 
 const Home = () => {
