@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/ui/header';
 import Footer from '../components/ui/footer';
-import LoginForm from '../components/forms/LoginForm';
-import ForgotPasswordForm from '../components/forms/ForgotPasswordForm';
-import MessageNotification from '../components/ui/MessageNotification';
-import FormContainer from '../components/ui/FormContainer';
+import LoginForm from '../components/LoginForm';
+import ForgotPasswordForm from '../components/ForgotPasswordForm';
+import MessageNotification from '../components/MessageNotification';
+import FormContainer from '../components/FormContainer';
 
 const baseUrl = 'http://localhost:8000/api/users/';
 
@@ -16,6 +16,8 @@ const Login = () => {
   const [resetToken, setResetToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const navigate = useNavigate(); // ✅ INITIALIZE
+
 
   useEffect(() => {
     setIsVisible(true);
@@ -33,21 +35,12 @@ const Login = () => {
 
   const handleLogin = async (username, password) => {
     setIsLoading(true);
-    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const res = await fetch(`${baseUrl}login/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
+      const success = await handleToken(username, password, navigate);
+      if (success) {
         showMessage('Login successful!', 'success');
       } else {
-        showMessage(data.detail || 'Login failed', 'error');
+        showMessage('Login failed. Please check your credentials.', 'error');
       }
     } catch (error) {
       showMessage('Server error', 'error');
