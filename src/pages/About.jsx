@@ -7,8 +7,8 @@ import {
   Layers, GitBranch, Gauge, Shield, Lightbulb,
   PieChart, Activity, BookOpen, Medal
 } from 'lucide-react';
-import Header from '../components/header';
-import Footer from '../components/Footer';
+import Header from '../components/ui/header';
+import Footer from '../components/ui/footer';
 
 const About = () => {
   const [activeFeature, setActiveFeature] = useState(0);
