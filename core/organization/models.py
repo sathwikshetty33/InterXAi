@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.db import models
 
 class organization(models.Model):
-    org = models.ForeignKey(User, on_delete=models.CASCADE)
+    org = models.ForeignKey(User, on_delete=models.CASCADE, related_name='organization')
     orgname = models.CharField(max_length=100)
     address = models.TextField()
     email = models.EmailField(unique=True, blank=True, null=True)

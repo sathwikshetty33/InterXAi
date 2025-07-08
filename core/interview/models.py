@@ -17,7 +17,7 @@ class Custominterviews(models.Model):
     def __str__(self):
         return f'{self.org.orgname}-{self.post}'
 
-class Customquestions(models.Model):
+class Customquestion(models.Model):
     interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE)
     question = models.TextField()
     answer = models.TextField(blank=True, null=True)
