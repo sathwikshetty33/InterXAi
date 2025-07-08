@@ -1,0 +1,83 @@
+from django.db import models
+from organization.models import *
+# Create your models here.
+class Custominterviews(models.Model):
+    org = models.ForeignKey(organization,on_delete=models.CASCADE)
+    desc = models.TextField()
+    post = models.TextField()
+    experience = models.CharField(max_length=10)
+    submissionDeadline = models.DateTimeField()
+    startTime = models.DateTimeField()
+    endTime = models.DateTimeField()
+    duration = models.IntegerField(default=60)
+    DSA = models.IntegerField(blank=True,null=True)
+    Dev = models.IntegerField(blank=True,null=True)
+    ask_questions_on_resume = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f'{self.org.orgname}-{self.post}'
+
+class Customquestions(models.Model):
+    interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE)
+    question = models.TextField()
+    answer = models.TextField(blank=True, null=True)
+    def __str__(self):
+        return f'{self.interview.org.orgname}-{self.question[:50]}...'
+class DsaTopics(models.Model):
+    interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE)
+    topic = models.CharField(max_length=100)
+    difficulty = models.CharField(max_length=20)
+    number_of_questions = models.IntegerField(default=0)
+    def __str__(self):
+        return f'{self.interview.org.orgname}-{self.topic}'
+class Application(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE)
+    approved = models.BooleanField(default=False)
+    resume = models.FileField(upload_to='./resume',blank=True,null=True)
+    attempted = models.BooleanField(default=False)
+    isCheated = models.BooleanField(default=False)
+    extratedResume = models.TextField(blank=True,null=True)
+    virtualResume = models.TextField(blank=True,null=True)
+    standardized_resume = models.FileField(upload_to='std_resumes/',blank=True,null=True)
+    score = models.IntegerField(default=0)
+    def __str__(self):
+        return f'{self.user.username}-{self.interview.org.orgname}'
+class Customconversation(models.Model):
+    Application = models.ForeignKey(Application, on_delete=models.CASCADE)
+    time = models.DateTimeField(auto_now_add=True)
+    confidence = models.IntegerField(blank=True,null=True)
+    def __str__(self):
+        return f'{self.Application.user.username}-{self.Application.interview.org.orgname}'
+class Customquestions(models.Model):
+    convo = models.ForeignKey(Customconversation, on_delete=models.CASCADE, db_index=True, default=1)
+    user = models.CharField(max_length=100, default="user")
+    question = models.TextField(default="Default question text")
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f'{self.convo.Application.user.username}-{self.id}'
+class postings(models.Model):
+    org = models.ForeignKey(organization, on_delete=models.CASCADE)
+    desc = models.TextField()
+    post = models.TextField()
+    experience = models.CharField(max_length=10)
+    deadline = models.DateTimeField()
+    def __str__(self):
+        return f'{self.org.orgname}-{self.post}'
+class leaderBoard(models.Model):
+    Application = models.ForeignKey(Application, on_delete=models.CASCADE)
+    Score = models.DecimalField(max_digits=10,decimal_places=2)
+
+    def __str__(self):
+        return f'{self.Application.user.username}-{self.Score}'
+
+class resumeconvo(models.Model):
+    Application = models.ForeignKey(Application,on_delete=models.CASCADE)
+    time = models.DateTimeField(auto_now_add=True)
+class resquestions(models.Model):
+    convo = models.ForeignKey(resumeconvo, on_delete=models.CASCADE, db_index=True, default=1)
+    user = models.CharField(max_length=100, default="user")
+    question = models.TextField(default="Default question text")
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f'{self.convo.Application.user.username}-{self.id}'
