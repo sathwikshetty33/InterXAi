@@ -58,6 +58,7 @@ class InterviewSession(models.Model):
     Application = models.ForeignKey(Application, on_delete=models.CASCADE)
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField()
+    current_question_index = models.IntegerField(default=0)
     status = models.CharField(max_length=20, choices=[('scheduled', 'Scheduled'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),('cheated','cheated')], default='scheduled')
     feedback = models.TextField(blank=True, null=True)
     score = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
