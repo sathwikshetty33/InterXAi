@@ -4,13 +4,14 @@ InterXAI CLI Tool - Adaptive Interview Management System
 Uses LangGraph and LangChain for interview flow management with Groq
 """
 
+import json
 import os
 import sys
 import django
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict
 from dataclasses import dataclass
-
+from django.conf import settings
 # LangChain and LangGraph imports
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
@@ -21,7 +22,7 @@ from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 
 # Django setup
-sys.path.append('/home/sathwik/InterXAI-v2/core')
+# sys.path.append('/home/sathwik/InterXAI-v2/')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
@@ -32,7 +33,7 @@ from interview.models import (
 )
 
 class EvaluationResult(BaseModel):
-    score: int = Field(description="Score from 1-10 for the answer")
+    score: float = Field(description="Score from 1-10 for the answer")
     feedback: str = Field(description="Detailed feedback on the answer")
     reasoning: str = Field(description="Explanation of the evaluation")
 class FollowUpDecision(BaseModel):
@@ -47,6 +48,20 @@ class FollowUpRequest(BaseModel):
     expected_answer: str = Field(description="The expected answer for the question")
     conversation_context: List[str] = Field(description="The context for the follow-up question")
 
+class FinalEvaluationRequest(BaseModel):
+    position: str = Field(description="Position for which the interview is being conducted")
+    experience: str = Field(description="Required experience level for the position")
+    interview_history: List[Dict[str, Any]] = Field(
+        description="Complete interview history including questions, answers, scores, and feedback"
+    )
+
+class FinalEvaluationResponse(BaseModel):
+    overall_score: float = Field(description="Overall score from 1-10 for the interview")
+    overall_feedback: str = Field(description="Comprehensive feedback on the candidate's performance")
+    strengths: str = Field(description="Key strengths observed during the interview")
+    recommendation: str = Field(
+        description="Final recommendation based on the interview performance (HIRE/REJECT/FURTHER_EVALUATION)"
+    )
 class EvaluationRequest(BaseModel):
     position: str = Field(description="Position for which the interview is being conducted")
     experience: str = Field(description="Required experience level for the position")
@@ -85,7 +100,7 @@ class InterviewManager:
         self.config = config or InterviewConfig()
         
         # Setup Groq API key
-        groq_api_key = self.config.groq_api_key or os.getenv('GROQ_API_KEY')
+        groq_api_key = settings.GROQ_API_KEY 
         if not groq_api_key:
             raise ValueError("GROQ_API_KEY environment variable must be set or passed in config")
         
@@ -99,11 +114,44 @@ class InterviewManager:
         
         self.EvaluationParser = JsonOutputParser(pydantic_object=EvaluationResult)
         self.FollowUpParser = JsonOutputParser(pydantic_object=FollowUpDecision)
+        self.FinalEvaluationParser = JsonOutputParser(pydantic_object=FinalEvaluationResponse)
         self.setup_prompts()
     
     def setup_prompts(self):
         """Setup LangChain prompts for different interview stages"""
-        
+        self.final_evaluation_prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are an expert technical interviewer providing final evaluation of a complete interview session.
+
+        Interview Context:
+        - Position: {position}
+        - Experience Required: {experience}
+
+        Complete Interview History:
+        {interview_history}
+
+        Note: The interview_history contains all questions asked, candidate responses, follow-up questions, individual scores, and feedback for each question.
+        IMPORTANT: Return strengths as a single string summarizing key strengths observed during the interview.
+        As the final evaluator, provide:
+        1. Overall Score (1-10): Weighted average considering all question performances
+        2. Overall Feedback: Comprehensive assessment of candidate's performance across all questions
+        3. Strengths: Key areas where candidate performed well
+        4. Recommendation: HIRE/REJECT/FURTHER_EVALUATION with justification
+
+        IMPORTANT: This is the final evaluation stage. Base your assessment on the complete interview performance, not individual questions.
+
+        Focus on:
+        - Consistency across different topics
+        - Technical depth and breadth
+        - Problem-solving methodology
+        - Communication effectiveness
+        - Overall suitability for the role
+
+        IMPORTANT: Respond with valid JSON only. No additional text or formatting.
+
+        Keep all sections concise but comprehensive (max 300 words each)
+            """),
+            ("human", "Please evaluate this interview response.")
+        ])
         # Evaluation prompt
         self.evaluation_prompt = ChatPromptTemplate.from_messages([
             ("system", """You are an expert technical interviewer evaluating candidate responses.
@@ -189,7 +237,25 @@ Keep your reasoning concise but informative (max 200 words).
             Keep it concise but informative for the next evaluation."""),
             ("human", "{conversation_history}")
         ])
-    
+    def final_evaluate_interview(self, req: FinalEvaluationRequest) -> FinalEvaluationResponse:
+        """
+        Provides final evaluation of complete interview session
+        """
+        
+        evaluation_chain = self.final_evaluation_prompt | self.llm | self.FinalEvaluationParser
+        result = evaluation_chain.invoke({
+            "position": req.position,
+            "experience": req.experience,
+            "interview_history": json.dumps(req.interview_history, indent=2),
+            "format_instructions": self.FinalEvaluationParser.get_format_instructions()
+        })
+        
+        return FinalEvaluationResponse(
+            overall_score=result["overall_score"],
+            overall_feedback=result["overall_feedback"],
+            strengths=result["strengths"],
+            recommendation=result["recommendation"]
+        )
     def setup_graph(self):
         """Setup LangGraph workflow for interview management"""
         
@@ -400,7 +466,7 @@ Keep your reasoning concise but informative (max 200 words).
                 raise ValueError("Empty feedback or reasoning in evaluation result")
             
             # Ensure score is within valid range
-            if not isinstance(result.score, int) or result.score < 0 or result.score > 10:
+            if not isinstance(result.score, float) or result.score < 0 or result.score > 10:
                 print(f"Warning: Invalid score {result.score}, using fallback")
                 result.score = 5
             

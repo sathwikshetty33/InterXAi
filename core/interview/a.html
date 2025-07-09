@@ -266,7 +266,7 @@
             display: none;
             opacity: 0;
             transform: translateY(-10px);
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
         }
 
         .feedback-section.show {
@@ -318,10 +318,15 @@
             margin-bottom: 20px;
             text-align: center;
             display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
         }
 
         .interview-status.show {
             display: block;
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .interview-status h4 {
@@ -332,6 +337,35 @@
         .interview-status p {
             color: #718096;
             font-size: 0.9rem;
+        }
+
+        .followup-indicator {
+            background: #e6fffa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            border-left: 4px solid #38b2ac;
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .followup-indicator.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .followup-indicator h5 {
+            color: #234e52;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .followup-indicator p {
+            color: #4a5568;
+            font-size: 0.8rem;
         }
     </style>
 </head>
@@ -346,7 +380,7 @@
             <h3>⚙️ Configuration</h3>
             <div class="form-group">
                 <label for="endpoint">API Endpoint:</label>
-                <input type="text" id="endpoint" value="http://localhost:8000/api/interview/interview-session/2">
+                <input type="text" id="endpoint" value="http://localhost:8000/api/interview/interview-session/2/">
             </div>
             <div class="form-group">
                 <label for="token">Authentication Token:</label>
@@ -361,6 +395,11 @@
         <div class="interview-status" id="interviewStatus">
             <h4>📊 Interview Status</h4>
             <p id="statusText">Ready to start interview</p>
+        </div>
+
+        <div class="followup-indicator" id="followupIndicator">
+            <h5>🔄 Follow-up Question</h5>
+            <p>This is a follow-up question to gather more details on your previous answer.</p>
         </div>
 
         <div class="button-group">
@@ -405,6 +444,7 @@
             const feedbackContent = document.getElementById('feedbackContent');
             const interviewStatus = document.getElementById('interviewStatus');
             const statusText = document.getElementById('statusText');
+            const followupIndicator = document.getElementById('followupIndicator');
 
             if (!endpoint) {
                 alert('Please enter an API endpoint');
@@ -419,7 +459,9 @@
             // Show loading
             loading.style.display = 'block';
             responseSection.style.display = 'none';
+            responseSection.classList.remove('show');
             feedbackSection.classList.remove('show');
+            followupIndicator.classList.remove('show');
 
             try {
                 const url = new URL(endpoint);
@@ -428,7 +470,7 @@
                 }
 
                 const response = await fetch(url.toString(), {
-                    method: 'GET',
+                    method: 'POST',
                     headers: {
                         'Authorization': `Token ${token}`,
                         'Content-Type': 'application/json',
@@ -439,10 +481,8 @@
                 
                 console.log('API Response:', data); // Debug log
 
-                // Hide loading with a small delay to ensure smooth transition
-                setTimeout(() => {
-                    loading.style.display = 'none';
-                }, 100);
+                // Hide loading
+                loading.style.display = 'none';
 
                 // Update conversation history
                 if (answer && currentQuestion) {
@@ -453,56 +493,78 @@
                     updateConversationHistory();
                 }
 
-                // Show response with delay to ensure proper rendering
+                // Show response section first
+                responseSection.style.display = 'block';
+                responseSection.classList.remove('error');
+                
+                // Add show class for smooth animation
                 setTimeout(() => {
-                    responseSection.style.display = 'block';
-                    responseSection.classList.remove('error');
-                    
-                    // Add show class for smooth animation
-                    setTimeout(() => {
-                        responseSection.classList.add('show');
-                    }, 50);
-                    
-                    if (response.ok) {
-                        responseTitle.innerHTML = `📋 API Response <span class="status-indicator status-success">Success ${response.status}</span>`;
-                        responseContent.textContent = JSON.stringify(data, null, 2);
+                    responseSection.classList.add('show');
+                }, 50);
+                
+                if (response.ok) {
+                    responseTitle.innerHTML = `📋 API Response <span class="status-indicator status-success">Success ${response.status}</span>`;
+                    responseContent.textContent = JSON.stringify(data, null, 2);
 
-                        // Update interview status
+                    // Show interview status
+                    setTimeout(() => {
                         interviewStatus.classList.add('show');
+                    }, 100);
+                    
+                    // Handle different response types
+                    if (data.message && data.message.includes('completed')) {
+                        statusText.textContent = 'Interview completed successfully!';
+                        statusText.style.color = '#22543d';
                         
-                        // Handle different response types
-                        if (data.message && data.message.includes('completed')) {
-                            statusText.textContent = 'Interview completed successfully!';
+                        // Show final feedback if available
+                        if (data.feedback || data.final_score) {
+                            setTimeout(() => {
+                                feedbackSection.style.display = 'block';
+                                feedbackContent.innerHTML = `
+                                    <div>
+                                        <strong>Final Score:</strong> <span class="score-badge ${getScoreClass(data.final_score)}">${data.final_score || 'N/A'}</span>
+                                    </div>
+                                    <div style="margin-top: 10px;">
+                                        <strong>Feedback:</strong><br>
+                                        ${data.feedback || 'No feedback provided'}
+                                    </div>
+                                    ${data.overall_evaluation ? `
+                                    <div style="margin-top: 10px;">
+                                        <strong>Overall Evaluation:</strong><br>
+                                        ${data.overall_evaluation}
+                                    </div>` : ''}
+                                `;
+                                
+                                // Show feedback with proper animation
+                                setTimeout(() => {
+                                    feedbackSection.classList.add('show');
+                                }, 100);
+                            }, 300);
+                        }
+                    } else if (data.current_question) {
+                        currentQuestion = data.current_question;
+                        
+                        // Handle follow-up vs regular questions
+                        if (data.is_followup === true) {
+                            statusText.textContent = 'Follow-up question generated';
+                            statusText.style.color = '#38b2ac';
+                            
+                            // Show follow-up indicator
+                            setTimeout(() => {
+                                followupIndicator.style.display = 'block';
+                                setTimeout(() => {
+                                    followupIndicator.classList.add('show');
+                                }, 50);
+                            }, 300);
+                            
+                        } else {
+                            statusText.textContent = 'Next question loaded - Evaluation completed';
                             statusText.style.color = '#22543d';
                             
-                            // Show final feedback if available
-                            if (data.feedback || data.final_score) {
-                                setTimeout(() => {
-                                    feedbackSection.classList.add('show');
-                                    feedbackContent.innerHTML = `
-                                        <div>
-                                            <strong>Final Score:</strong> <span class="score-badge ${getScoreClass(data.final_score)}">${data.final_score || 'N/A'}</span>
-                                        </div>
-                                        <div style="margin-top: 10px;">
-                                            <strong>Feedback:</strong><br>
-                                            ${data.feedback || 'No feedback provided'}
-                                        </div>
-                                    `;
-                                }, 200);
-                            }
-                        } else if (data.current_question) {
-                            currentQuestion = data.current_question;
-                            
-                            if (data.is_followup) {
-                                statusText.textContent = 'Follow-up question generated';
-                            } else {
-                                statusText.textContent = 'Next question loaded - Evaluation completed';
-                            }
-                            
-                            // Show feedback and score if available with delay
+                            // Show feedback and score for non-follow-up questions
                             if (data.feedback || data.score) {
                                 setTimeout(() => {
-                                    feedbackSection.classList.add('show');
+                                    feedbackSection.style.display = 'block';
                                     feedbackContent.innerHTML = `
                                         <div>
                                             <strong>Score:</strong> <span class="score-badge ${getScoreClass(data.score)}">${data.score || 'N/A'}</span>
@@ -512,41 +574,53 @@
                                             ${data.feedback || 'No feedback provided'}
                                         </div>
                                     `;
-                                }, 200);
+                                    
+                                    // Show feedback with proper animation timing
+                                    setTimeout(() => {
+                                        feedbackSection.classList.add('show');
+                                    }, 100);
+                                }, 300);
                             }
                         }
                     } else {
-                        responseSection.classList.add('error');
-                        responseTitle.innerHTML = `📋 API Response <span class="status-indicator status-error">Error ${response.status}</span>`;
-                        responseContent.textContent = JSON.stringify(data, null, 2);
-                        
+                        // Handle other response types
+                        statusText.textContent = 'Response received';
+                        statusText.style.color = '#4a5568';
+                    }
+                } else {
+                    responseSection.classList.add('error');
+                    responseTitle.innerHTML = `📋 API Response <span class="status-indicator status-error">Error ${response.status}</span>`;
+                    responseContent.textContent = JSON.stringify(data, null, 2);
+                    
+                    setTimeout(() => {
+                        interviewStatus.classList.add('show');
                         statusText.textContent = 'Error occurred during request';
                         statusText.style.color = '#742a2a';
-                    }
-                }, 150);
+                    }, 100);
+                }
 
-                // Clear the answer field for next question with delay
+                // Clear the answer field for next question
                 setTimeout(() => {
                     document.getElementById('answer').value = '';
                     document.getElementById('answer').focus();
-                }, 300);
+                }, 500);
 
             } catch (error) {
                 // Hide loading
-                setTimeout(() => {
-                    loading.style.display = 'none';
-                }, 100);
+                loading.style.display = 'none';
 
                 // Show error
+                responseSection.style.display = 'block';
+                responseSection.classList.add('error');
+                responseTitle.innerHTML = `📋 API Response <span class="status-indicator status-error">Network Error</span>`;
+                responseContent.textContent = `Error: ${error.message}`;
+                
                 setTimeout(() => {
-                    responseSection.style.display = 'block';
-                    responseSection.classList.add('error');
-                    responseTitle.innerHTML = `📋 API Response <span class="status-indicator status-error">Network Error</span>`;
-                    responseContent.textContent = `Error: ${error.message}`;
-                    
+                    responseSection.classList.add('show');
+                    interviewStatus.classList.add('show');
                     statusText.textContent = 'Network error occurred';
                     statusText.style.color = '#742a2a';
-                }, 150);
+                }, 50);
             }
         }
 
@@ -586,17 +660,22 @@
             const feedbackSection = document.getElementById('feedbackSection');
             const interviewStatus = document.getElementById('interviewStatus');
             const conversationHistory = document.getElementById('conversationHistory');
+            const followupIndicator = document.getElementById('followupIndicator');
             
             // Remove show classes for smooth animation
             responseSection.classList.remove('show');
             feedbackSection.classList.remove('show');
             interviewStatus.classList.remove('show');
+            followupIndicator.classList.remove('show');
             
             // Hide elements after animation
             setTimeout(() => {
                 responseSection.style.display = 'none';
+                feedbackSection.style.display = 'none';
+                interviewStatus.style.display = 'none';
+                followupIndicator.style.display = 'none';
                 conversationHistory.style.display = 'none';
-            }, 300);
+            }, 400);
             
             document.getElementById('answer').value = '';
             conversationHistory = [];
