@@ -7,7 +7,7 @@ from django.utils import timezone
 from datetime import  timedelta
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
-from .utils import *
+from utils.utils import *
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from organization.models import *

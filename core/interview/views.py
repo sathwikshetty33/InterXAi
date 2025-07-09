@@ -7,7 +7,7 @@ from .models import *
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication
 from .permissions import *
-from .agent import *
+from utils.agent import *
 # Create your views here.
 class CustomInterviewCreateView(APIView):
     permission_classes = [IsAuthenticated, IsOrganization]
@@ -124,12 +124,18 @@ class InterviewSessionView(APIView):
                     "score": response.score
                 }, status=status.HTTP_200_OK)
             else:
+                # Interview completed - perform final evaluation
                 session.status = 'completed'
                 session.save()
+                
+                # Perform final evaluation
+                final_evaluation_response = self.perform_final_evaluation(session)
+                
                 return Response({
                     "message": "Interview completed successfully.", 
                     "feedback": interaction.feedback,
-                    "final_score": interaction.score
+                    "final_score": interaction.score,
+                    "overall_evaluation": final_evaluation_response
                 }, status=status.HTTP_200_OK)
         else:
             # Use the follow_up_decider method from InterviewManager
@@ -152,7 +158,8 @@ class InterviewSessionView(APIView):
                     return Response({
                         "session_id": session.id, 
                         "current_question": follow_up_decision.followup_question,
-                        "is_followup": True
+                        "feedback": "Follow-up needed.",
+                        "score": 5
                     }, status=status.HTTP_200_OK)
                 else:
                     # No follow-up needed - evaluate the current interaction
@@ -193,13 +200,87 @@ class InterviewSessionView(APIView):
                             "score": evaluation_response.score
                         }, status=status.HTTP_200_OK)
                     else:
+                        # Interview completed - perform final evaluation
                         session.status = 'completed'
                         session.save()
+                        
+                        final_evaluation_response = self.perform_final_evaluation(session)
+                        
                         return Response({
                             "message": "Interview completed successfully.",
                             "feedback": interaction.feedback,
-                            "final_score": interaction.score
+                            "final_score": interaction.score,
+                            "overall_evaluation": final_evaluation_response
                         }, status=status.HTTP_200_OK)
                         
             except Exception as e:
                 return Response({"error": f"Follow-up decision failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def perform_final_evaluation(self, session):
+        """
+        Performs final evaluation of the completed interview session
+        """
+        try:
+            # Get all interactions for this session
+            interactions = Interaction.objects.filter(session=session).order_by('created_at')
+            
+            if not interactions.exists():
+                return {"error": "No interactions found for final evaluation"}
+            
+            # Build comprehensive interview history
+            interview_history = []
+            
+            for interaction in interactions:
+                question_data = {
+                    "main_question": interaction.Customquestion.question,
+                    "expected_answer": interaction.Customquestion.answer,
+                    "conversation": [],
+                    "individual_score": interaction.score,
+                    "individual_feedback": interaction.feedback
+                }
+                
+                # Get all follow-up questions and answers for this interaction
+                follow_ups = FollowUpQuestions.objects.filter(
+                    Interaction=interaction
+                ).order_by('created_at')
+                
+                for follow_up in follow_ups:
+                    question_data["conversation"].append({
+                        "question": follow_up.question,
+                        "answer": follow_up.answer if follow_up.answer else "No answer provided"
+                    })
+                
+                interview_history.append(question_data)
+            
+            llm = InterviewManager()
+            
+            req = FinalEvaluationRequest(
+                position=session.Application.interview.post,
+                experience=session.Application.interview.experience,
+                interview_history=interview_history
+            )
+            
+            final_evaluation = llm.final_evaluate_interview(req)
+            
+            # Save final evaluation to session
+            session.score = final_evaluation.overall_score
+            session.feedback = final_evaluation.overall_feedback
+            session.strengths = final_evaluation.strengths
+            session.recommendation = final_evaluation.recommendation
+            session.save()
+            
+            return {
+                "overall_score": final_evaluation.overall_score,
+                "overall_feedback": final_evaluation.overall_feedback,
+                "strengths": final_evaluation.strengths,
+                "recommendation": final_evaluation.recommendation,
+                "individual_scores": [
+                    {
+                        "question": interaction.Customquestion.question,
+                        "score": interaction.score,
+                        "feedback": interaction.feedback
+                    } for interaction in interactions
+                ]
+            }
+            
+        except Exception as e:
+            return {"error": f"Final evaluation failed: {str(e)}"}
