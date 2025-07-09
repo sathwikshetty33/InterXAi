@@ -93,7 +93,8 @@ class VerifyEmailAPIView(APIView):
         if serializer.is_valid():
             submitted_code = serializer.validated_data['verification_code']
             verification_id = request.data.get('verification_id')
-            
+            print(verification_id)
+            print(submitted_code)
             try:
                 query_params = {
                     'code': submitted_code,
@@ -103,13 +104,15 @@ class VerifyEmailAPIView(APIView):
                 
                 if verification_id:
                     query_params['id'] = verification_id
+                    verification = VerificationCode.objects.filter(**query_params).first()
                 else:
                     verification = VerificationCode.objects.filter(**query_params).order_by('-created_at').first()
-                    if not verification:
-                        return Response({
-                            'success': False,
-                            'error': 'Invalid or expired verification code'
-                        }, status=status.HTTP_400_BAD_REQUEST)
+                
+                if not verification:
+                    return Response({
+                        'success': False,
+                        'error': 'Invalid or expired verification code'
+                    }, status=status.HTTP_400_BAD_REQUEST)
                 
                 verification.attempts += 1
                 verification.save()
