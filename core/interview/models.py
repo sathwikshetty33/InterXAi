@@ -35,8 +35,6 @@ class Application(models.Model):
     interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE)
     approved = models.BooleanField(default=False)
     resume = models.FileField(upload_to='./resume',blank=True,null=True)
-    attempted = models.BooleanField(default=False)
-    isCheated = models.BooleanField(default=False)
     extratedResume = models.TextField(blank=True,null=True)
     virtualResume = models.TextField(blank=True,null=True)
     standardized_resume = models.FileField(upload_to='std_resumes/',blank=True,null=True)
@@ -56,6 +54,31 @@ class Customquestions(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return f'{self.convo.Application.user.username}-{self.id}'
+class InterviewSession(models.Model):
+    Application = models.ForeignKey(Application, on_delete=models.CASCADE)
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField()
+    current_question_index = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, choices=[('scheduled', 'Scheduled'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),('cheated','cheated')], default='scheduled')
+    feedback = models.TextField(blank=True, null=True)
+    score = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    def __str__(self):
+        return f'{self.Application.user.username}-{self.start_time}'
+    
+class Interaction(models.Model):
+    session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE)
+    Customquestion = models.ForeignKey(Customquestion, on_delete=models.CASCADE)
+    score = models.IntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f'{self.session.Application.user.username}-{self.Customquestion.question[:50]}...'
+class FollowUpQuestions(models.Model):
+    Interaction = models.ForeignKey(Interaction, on_delete=models.CASCADE)
+    question = models.TextField()
+    answer = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f'{self.Interaction.session.Application.user.username}-{self.question[:50]}...'
 class postings(models.Model):
     org = models.ForeignKey(organization, on_delete=models.CASCADE)
     desc = models.TextField()
