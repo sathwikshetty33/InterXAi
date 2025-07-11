@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .serializers import CustomInterviewSerializer
+from .serializers import *
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,8 +8,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication
 from .permissions import *
 from utils.agent import *
+from django.utils import timezone
+
 # Create your views here.
-class CustomInterviewCreateView(APIView):
+class CustomInterviewView(APIView):
     permission_classes = [IsAuthenticated, IsOrganization]
     authentication_classes = [TokenAuthentication]
 
@@ -22,7 +24,31 @@ class CustomInterviewCreateView(APIView):
             serializer.save(org=org_instance)
             return Response({"message": "Interview created successfully."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    def put(self, request, id):
+        try:
+            interview = Custominterviews.objects.get(id=id)
+        except Custominterviews.DoesNotExist:
+            return Response({"error": "Interview not found."}, status=status.HTTP_404_NOT_FOUND)
+        if interview.org.org != request.user:
+            return Response({"error": "You do not have permission to update this interview."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = CustomInterviewSerializer(interview, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Interview updated successfully."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request):
+        interviews = Custominterviews.objects.filter(org__org=request.user)
+        serializer = CustomInterviewSerializer(interviews, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get(self, request, id):
+        try:
+            interview = Custominterviews.objects.get(id=id)
+        except Custominterviews.DoesNotExist:
+            return Response({"error": "Interview not found."}, status=status.HTTP_404_NOT_FOUND)
+        if interview.org.org != request.user:
+            return Response({"error": "You do not have permission to view this interview."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = CustomInterviewSerializer(interview)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 class InterviewSessionInitializerView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
@@ -284,3 +310,32 @@ class InterviewSessionView(APIView):
             
         except Exception as e:
             return {"error": f"Final evaluation failed: {str(e)}"}
+
+class GetAllInterviewsView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request):
+        interviews = Custominterviews.objects.filter(submissionDeadline__gt=timezone.now())
+        serializer = InterviewSerializer(interviews, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class ApplicationView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def post(self, request, id):
+        try:
+            interview = Custominterviews.objects.get(id=id)
+        except Custominterviews.DoesNotExist:
+            return Response({"error": "Interview not found."}, status=status.HTTP_404_NOT_FOUND)
+        if Application.objects.filter(user=request.user, interview=interview).exists():
+            return Response({"error": "You have already applied for this interview."}, status=status.HTTP_400_BAD_REQUEST)
+        if interview.submissionDeadline < timezone.now():
+            return Response({"error": "Submission deadline has passed."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = ApplyApplicationSerializer(data=request.data)
+
+        if serializer.is_valid():
+            application = serializer.save(user=request.user, interview=interview)
+            return Response({"message": "Application created successfully.", "application_id": application.id}, status=status.HTTP_201_CREATED)
+        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
