@@ -18,13 +18,13 @@ class Custominterviews(models.Model):
         return f'{self.org.orgname}-{self.post}'
 
 class Customquestion(models.Model):
-    interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE)
+    interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE, related_name='questions')
     question = models.TextField()
     answer = models.TextField(blank=True, null=True)
     def __str__(self):
         return f'{self.interview.org.orgname}-{self.question[:50]}...'
 class DsaTopics(models.Model):
-    interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE)
+    interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE, related_name='dsa_topics' )
     topic = models.CharField(max_length=100)
     difficulty = models.CharField(max_length=20)
     number_of_questions = models.IntegerField(default=0)
