@@ -36,10 +36,7 @@ class CustomInterviewView(APIView):
             serializer.save()
             return Response({"message": "Interview updated successfully."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    def get(self, request):
-        interviews = Custominterviews.objects.filter(org__org=request.user)
-        serializer = CustomInterviewSerializer(interviews, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     def get(self, request, id):
         try:
             interview = Custominterviews.objects.get(id=id)
@@ -49,6 +46,15 @@ class CustomInterviewView(APIView):
             return Response({"error": "You do not have permission to view this interview."}, status=status.HTTP_403_FORBIDDEN)
         serializer = CustomInterviewSerializer(interview)
         return Response(serializer.data, status=status.HTTP_200_OK)
+class getInterview(APIView):
+    permission_classes = [IsAuthenticated, IsOrganization]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request):
+        interviews = Custominterviews.objects.filter(org__org=request.user)
+        serializer = CustomInterviewSerializer(interviews, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 class InterviewSessionInitializerView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
