@@ -32,7 +32,7 @@ class DsaTopics(models.Model):
         return f'{self.interview.org.orgname}-{self.topic}'
 class Application(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE)
+    interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE, related_name='applications')
     approved = models.BooleanField(default=False)
     resume = models.CharField(max_length=255, blank=True, null=True)
     applied_at = models.DateTimeField(auto_now_add=True,blank=True, null=True)

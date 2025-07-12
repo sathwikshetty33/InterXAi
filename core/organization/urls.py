@@ -7,5 +7,5 @@ urlpatterns = [
     path('update/', views.Organization.as_view(), name='organization_update'),
     path('get-org-id/', views.getOrganizationId.as_view(), name='organization_get'),
     path('is-org/', views.isOrganization.as_view(), name='organization_check'),\
-    path('check-org/<int:id>', views.checkOrganization.as_view(), name='organization_check_status'),
+    path('check-org/<int:id>/', views.checkOrganization.as_view(), name='organization_check_status'),
 ]

@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from urllib3 import request
 from .serializers import *
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ from rest_framework.authentication import TokenAuthentication
 from .permissions import *
 from utils.agent import *
 from django.utils import timezone
-
+from django.db.models import Q
 # Create your views here.
 class CustomInterviewView(APIView):
     permission_classes = [IsAuthenticated, IsOrganization]
@@ -322,10 +323,13 @@ class GetAllInterviewsView(APIView):
     authentication_classes = [TokenAuthentication]
 
     def get(self, request):
-        interviews = Custominterviews.objects.filter(submissionDeadline__gt=timezone.now())
+        interviews = Custominterviews.objects.filter(
+            Q(submissionDeadline__gt=timezone.now()) |
+            Q(applications__user=request.user)
+        ).distinct()
         serializer = InterviewSerializer(interviews, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
 class ApplicationView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
