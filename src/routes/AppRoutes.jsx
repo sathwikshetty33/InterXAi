@@ -20,6 +20,7 @@ export default function AppRoutes() {
       <Route path="/profile-setup" element={<ProfileSetup />} />
       <Route path="/register-org" element={<OrgSignup />} />
       <Route path="/org-dashboard/:id" element={<OrgDashboard />} />
+      <Route path="/interview/:id" element={<Interview />} />
       <Route path="/interview" element={<Interview />} />
       
 
