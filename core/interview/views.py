@@ -8,9 +8,13 @@ from .models import *
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication
 from .permissions import *
-from utils.agent import *
+from utils.request_models import *
 from django.utils import timezone
 from django.db.models import Q
+from utils.ResumeExtractor import ResumeExtractor
+from utils.Evaluator import Evaluator
+from utils.FinalEvaluator import FinalEvaluator
+from utils.FollowUpdecider import FollowUpDecider
 # Create your views here.
 class CustomInterviewView(APIView):
     permission_classes = [IsAuthenticated, IsOrganization]
@@ -60,27 +64,32 @@ class InterviewSessionInitializerView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
 
-    def post(self, request, interview_id):
+    def post(self, request, id):
         try:
-            interview = Application.objects.get(id=interview_id)
-        except Application.DoesNotExist:
-            return Response({"error": "Application not found."}, status=status.HTTP_404_NOT_FOUND)
+            interview = Custominterviews.objects.get(id=id)
+        except Custominterviews.DoesNotExist:
+            return Response({"error": "Interview not found."}, status=status.HTTP_404_NOT_FOUND)
+        interview = Application.objects.filter(user=request.user, interview=interview).first()
+        if not interview:
+            return Response({"error": "You have not applied for this interview."}, status=status.HTTP_403_FORBIDDEN)
         if not interview.approved:
             return Response({"error": "Application not approved."}, status=status.HTTP_403_FORBIDDEN)
-        if interview.status !=  'scheduled':
-            return Response({"error": "Interview session already exists or is not scheduled."}, status=status.HTTP_400_BAD_REQUEST)
-        if interview.user != request.user:
-            return Response({"error": "You do not have permission to initialize this interview session."}, status=status.HTTP_403_FORBIDDEN)
+        if interview.interview.startTime > timezone.now() or interview.interview.endTime < timezone.now():
+            return Response({"error": "Interview time has passed."}, status=status.HTTP_400_BAD_REQUEST)
+        session = InterviewSession.objects.filter(Application=interview).first()
+        if session:
+            return Response({"error": "Interview session already exists."}, status=status.HTTP_400_BAD_REQUEST)
         session = InterviewSession.objects.create(Application=interview)
         question = Customquestion.objects.filter(interview=interview.interview).first()
         if question:
             session.current_question_index = 0
-            interaction = Interaction.objects.create(session=session, question=question.question)
+            session.status = "ongoing"
+            interaction = Interaction.objects.create(session=session, Customquestion=question)
             follow_up = FollowUpQuestions.objects.create(Interaction=interaction, question=question.question)
         return Response({"message": "Interview session initialized successfully.", "session_id": session.id, "question": question.question}, status=status.HTTP_201_CREATED)
 
 class InterviewSessionView(APIView):
-    permission_classes = [IsAuthenticated]  # Adjust as needed, e.g., IsAuthenticated
+    permission_classes = [IsAuthenticated]  
     authentication_classes = [TokenAuthentication]
 
     def post(self, request, id):
@@ -88,7 +97,10 @@ class InterviewSessionView(APIView):
             session = InterviewSession.objects.get(id=id)
         except InterviewSession.DoesNotExist:
             return Response({"error": "Interview session not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+        if request.user != session.Application.user:
+            return Response({"error": "You do not have permission to access this session."}, status=status.HTTP_403_FORBIDDEN)
+        if session.status != 'ongoing':
+            return Response({"error": "Session is not ongoing."}, status=status.HTTP_400_BAD_REQUEST)
         current_index = session.current_question_index
         questions = Customquestion.objects.filter(interview=session.Application.interview)
         current_question = questions[current_index] if current_index < len(questions) else None
@@ -117,7 +129,7 @@ class InterviewSessionView(APIView):
                 conversation_context.append(f"A: {follow_up.answer}")
         
         count = follow_up_questions.count()
-        llm = InterviewManager()
+        llm = Evaluator()
         
         if count >= 3:
             # Use the evaluate_answer method from InterviewManager
@@ -130,7 +142,7 @@ class InterviewSessionView(APIView):
             )
             
             try:
-                response = llm.evaluate_answer(req)
+                response = llm.evaluate(req)
                 interaction.score = response.score
                 interaction.feedback = response.feedback
                 interaction.save()
@@ -153,8 +165,7 @@ class InterviewSessionView(APIView):
                 return Response({
                     "session_id": session.id, 
                     "current_question": next_question,
-                    "feedback": response.feedback,
-                    "score": response.score
+                    "completed": False
                 }, status=status.HTTP_200_OK)
             else:
                 # Interview completed - perform final evaluation
@@ -165,10 +176,7 @@ class InterviewSessionView(APIView):
                 final_evaluation_response = self.perform_final_evaluation(session)
                 
                 return Response({
-                    "message": "Interview completed successfully.", 
-                    "feedback": interaction.feedback,
-                    "final_score": interaction.score,
-                    "overall_evaluation": final_evaluation_response
+                    "completed": True
                 }, status=status.HTTP_200_OK)
         else:
             # Use the follow_up_decider method from InterviewManager
@@ -180,7 +188,8 @@ class InterviewSessionView(APIView):
             )
             
             try:
-                follow_up_decision = llm.follow_up_decider_node(req)
+                llm = FollowUpDecider()
+                follow_up_decision = llm.evaluate(req)
                 
                 if follow_up_decision.needs_followup and follow_up_decision.followup_question:
                     # Create follow-up question
@@ -191,11 +200,9 @@ class InterviewSessionView(APIView):
                     return Response({
                         "session_id": session.id, 
                         "current_question": follow_up_decision.followup_question,
-                        "feedback": "Follow-up needed.",
-                        "score": 5
+                        "completed": False
                     }, status=status.HTTP_200_OK)
                 else:
-                    # No follow-up needed - evaluate the current interaction
                     eval_req = EvaluationRequest(
                         position=session.Application.interview.post,
                         experience=session.Application.interview.experience,
@@ -205,7 +212,8 @@ class InterviewSessionView(APIView):
                     )
                     
                     try:
-                        evaluation_response = llm.evaluate_answer(eval_req)
+                        llm = Evaluator()
+                        evaluation_response = llm.evaluate(eval_req)
                         interaction.score = evaluation_response.score
                         interaction.feedback = evaluation_response.feedback
                         interaction.save()
@@ -228,9 +236,9 @@ class InterviewSessionView(APIView):
                         return Response({
                             "session_id": session.id, 
                             "current_question": next_question,
-                            "is_followup": False,
-                            "feedback": evaluation_response.feedback,
-                            "score": evaluation_response.score
+                            "completed": False
+
+
                         }, status=status.HTTP_200_OK)
                     else:
                         # Interview completed - perform final evaluation
@@ -240,10 +248,7 @@ class InterviewSessionView(APIView):
                         final_evaluation_response = self.perform_final_evaluation(session)
                         
                         return Response({
-                            "message": "Interview completed successfully.",
-                            "feedback": interaction.feedback,
-                            "final_score": interaction.score,
-                            "overall_evaluation": final_evaluation_response
+                            "completed": False
                         }, status=status.HTTP_200_OK)
                         
             except Exception as e:
@@ -284,7 +289,7 @@ class InterviewSessionView(APIView):
                 
                 interview_history.append(question_data)
             
-            llm = InterviewManager()
+            llm = FinalEvaluator()
             
             req = FinalEvaluationRequest(
                 position=session.Application.interview.post,
@@ -292,7 +297,7 @@ class InterviewSessionView(APIView):
                 interview_history=interview_history
             )
             
-            final_evaluation = llm.final_evaluate_interview(req)
+            final_evaluation = llm.evaluate(req)
             
             # Save final evaluation to session
             session.score = final_evaluation.overall_score
@@ -329,6 +334,9 @@ class GetAllInterviewsView(APIView):
         ).distinct()
         serializer = InterviewSerializer(interviews, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+import requests
+from PyPDF2 import PdfReader
+from django.core.files.base import ContentFile
 
 class ApplicationView(APIView):
     permission_classes = [IsAuthenticated]
@@ -339,13 +347,67 @@ class ApplicationView(APIView):
             interview = Custominterviews.objects.get(id=id)
         except Custominterviews.DoesNotExist:
             return Response({"error": "Interview not found."}, status=status.HTTP_404_NOT_FOUND)
+
         if Application.objects.filter(user=request.user, interview=interview).exists():
             return Response({"error": "You have already applied for this interview."}, status=status.HTTP_400_BAD_REQUEST)
+
         if interview.submissionDeadline < timezone.now():
             return Response({"error": "Submission deadline has passed."}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = ApplyApplicationSerializer(data=request.data)
 
+        # Expect 'resume_url' in request data
+        resume_url = request.data.get("resume_url")
+        if not resume_url:
+            return Response({"error": "Missing resume URL."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Download the resume
+        try:
+            response = requests.get(resume_url)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            return Response({"error": f"Failed to download resume: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Read PDF content
+        try:
+            pdf_reader = PdfReader(ContentFile(response.content))
+            extracted_text = ""
+            for page in pdf_reader.pages:
+                extracted_text += page.extract_text() or ""
+        except Exception as e:
+            return Response({"error": f"Failed to process PDF: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate and save the application
+        serializer = ApplyApplicationSerializer(data=request.data)
         if serializer.is_valid():
-            application = serializer.save(user=request.user, interview=interview)
-            return Response({"message": "Application created successfully.", "application_id": application.id}, status=status.HTTP_201_CREATED)
+            application = serializer.save(
+                user=request.user,
+                interview=interview,
+            )
+            req = resumeExtractionRequest(
+                resume_text=extracted_text,
+                job_title=interview.post,
+                job_description=interview.desc,
+                experience=interview.experience
+            )
+            llm = ResumeExtractor()
+            try:
+                response = llm.evaluate(req)
+                print("Resume extraction response:", response)
+                application.resume = resume_url
+                application.extratedResume = response.extracted_standardized_resume
+                application.score = response.score
+                application.feedback = response.feedback
+                try:
+                    application.shortlisting_decision = response.shortlisting_decision
+                except Exception as e:
+                    application.shortlisting_decision = False
+                application.save()
+            except Exception as e:
+                return Response({"error": f"Failed to extract resume information: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            return Response({
+                "message": "Application created successfully.",
+                "application_id": application.id,
+                "extracted_resume_text": extracted_text[:500]  # Optionally show a preview
+            }, status=status.HTTP_201_CREATED)
+
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
