@@ -8,10 +8,13 @@ from .models import *
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication
 from .permissions import *
-from utils.agent import *
 from utils.request_models import *
 from django.utils import timezone
 from django.db.models import Q
+from utils.ResumeExtractor import ResumeExtractor
+from utils.Evaluator import Evaluator
+from utils.FinalEvaluator import FinalEvaluator
+from utils.FollowUpdecider import FollowUpDecider
 # Create your views here.
 class CustomInterviewView(APIView):
     permission_classes = [IsAuthenticated, IsOrganization]
@@ -126,7 +129,7 @@ class InterviewSessionView(APIView):
                 conversation_context.append(f"A: {follow_up.answer}")
         
         count = follow_up_questions.count()
-        llm = InterviewManager()
+        llm = Evaluator()
         
         if count >= 3:
             # Use the evaluate_answer method from InterviewManager
@@ -139,7 +142,7 @@ class InterviewSessionView(APIView):
             )
             
             try:
-                response = llm.evaluate_answer(req)
+                response = llm.evaluate(req)
                 interaction.score = response.score
                 interaction.feedback = response.feedback
                 interaction.save()
@@ -185,7 +188,8 @@ class InterviewSessionView(APIView):
             )
             
             try:
-                follow_up_decision = llm.follow_up_decider_node(req)
+                llm = FollowUpDecider()
+                follow_up_decision = llm.evaluate(req)
                 
                 if follow_up_decision.needs_followup and follow_up_decision.followup_question:
                     # Create follow-up question
@@ -208,7 +212,8 @@ class InterviewSessionView(APIView):
                     )
                     
                     try:
-                        evaluation_response = llm.evaluate_answer(eval_req)
+                        llm = Evaluator()
+                        evaluation_response = llm.evaluate(eval_req)
                         interaction.score = evaluation_response.score
                         interaction.feedback = evaluation_response.feedback
                         interaction.save()
@@ -284,7 +289,7 @@ class InterviewSessionView(APIView):
                 
                 interview_history.append(question_data)
             
-            llm = InterviewManager()
+            llm = FinalEvaluator()
             
             req = FinalEvaluationRequest(
                 position=session.Application.interview.post,
@@ -292,7 +297,7 @@ class InterviewSessionView(APIView):
                 interview_history=interview_history
             )
             
-            final_evaluation = llm.final_evaluate_interview(req)
+            final_evaluation = llm.evaluate(req)
             
             # Save final evaluation to session
             session.score = final_evaluation.overall_score
@@ -383,9 +388,9 @@ class ApplicationView(APIView):
                 job_description=interview.desc,
                 experience=interview.experience
             )
-            llm = InterviewManager()
+            llm = ResumeExtractor()
             try:
-                response = llm.resume_extraction(req)
+                response = llm.evaluate(req)
                 print("Resume extraction response:", response)
                 application.resume = resume_url
                 application.extratedResume = response.extracted_standardized_resume

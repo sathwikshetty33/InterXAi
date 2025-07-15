@@ -22,12 +22,6 @@ from .config import InterviewConfig
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
-# Import your Django models
-from interview.models import (
-    Custominterviews, Customquestion, Application, 
-    InterviewSession, Interaction, FollowUpQuestions, Customconversation
-)
-
 class InterviewManager:
     """Main class for managing interview sessions"""
     

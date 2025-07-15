@@ -1,7 +1,5 @@
-from typing import Any, Dict, List, Optional, TypedDict
-from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
-from langchain_core.messages import BaseMessage
 
 class EvaluationResult(BaseModel):
     score: float = Field(description="Score from 1-10 for the answer")
@@ -39,21 +37,6 @@ class EvaluationRequest(BaseModel):
     question: str = Field(description="The intial question asked to the candidate if there are more questions in the conversation History then they were follow up questions because the candidates response was not satisfied")
     conversation_context: List[str] = Field(description="The context for the follow-up question")
     expected_answer: str = Field(description="The expected answer for the question")
-class InterviewState(TypedDict):
-    messages: List[BaseMessage]
-    current_question: Optional[str]
-    main_question: Optional[str]  
-    excepted_answer: Optional[str]  
-    current_answer: Optional[str]
-    session_id: int
-    current_interaction: Optional[int]
-    questions_asked: int
-    followup_count: int
-    max_followups: int
-    interview_completed: bool
-    conversation_context: str
-    evaluation_result: Optional[EvaluationResult]  # Add this to TypedDict
-
 class resumeExtractionRequest(BaseModel):
     resume_text: str = Field(description="The text content of the resume extracted")
     job_title : str = Field(description="The job title for which the resume is being extracted")
