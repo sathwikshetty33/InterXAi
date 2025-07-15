@@ -19,6 +19,7 @@ class Custominterviews(models.Model):
 
 class Customquestion(models.Model):
     interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE, related_name='questions')
+    type = models.CharField(max_length=20, choices=[('resume', 'resume'), ('interview', 'interview')], default='interview')
     question = models.TextField()
     answer = models.TextField(blank=True, null=True)
     def __str__(self):
@@ -38,6 +39,8 @@ class Application(models.Model):
     applied_at = models.DateTimeField(auto_now_add=True,blank=True, null=True)
     extratedResume = models.TextField(blank=True,null=True)
     score = models.FloatField(default=0)
+    shortlisting_decision = models.BooleanField(default=False)
+    feedback = models.TextField(blank=True, null=True)
     def __str__(self):
         return f'{self.user.username}-{self.interview.org.orgname}'
 class Customconversation(models.Model):
@@ -56,9 +59,9 @@ class Customquestions(models.Model):
 class InterviewSession(models.Model):
     Application = models.ForeignKey(Application, on_delete=models.CASCADE)
     start_time = models.DateTimeField(auto_now_add=True)
-    end_time = models.DateTimeField()
+    end_time = models.DateTimeField(blank=True, null=True)
     current_question_index = models.IntegerField(default=0)
-    status = models.CharField(max_length=20, choices=[('scheduled', 'Scheduled'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),('cheated','cheated')], default='scheduled')
+    status = models.CharField(max_length=20, choices=[('scheduled', 'Scheduled'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),('cheated','cheated'),('ongoing','Ongoing')], default='scheduled')
     feedback = models.TextField(blank=True, null=True)
     score = models.FloatField(blank=True, null=True)
     recommendation = models.CharField(max_length=50, blank=True, null=True)

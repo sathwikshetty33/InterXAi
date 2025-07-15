@@ -128,12 +128,12 @@ class CustomInterviewSerializer(serializers.ModelSerializer):
 class InterviewSerializer(serializers.ModelSerializer):
     has_applied = serializers.SerializerMethodField()
     application_status = serializers.SerializerMethodField()
-
+    attempted = serializers.SerializerMethodField()
     class Meta:
         model = Custominterviews
         fields = [
             "id", "desc", "post", "experience", "submissionDeadline",
-            "startTime", "endTime", "has_applied","application_status",
+            "startTime", "endTime", "has_applied","application_status","attempted",
         ]
 
     def get_has_applied(self, obj):
@@ -162,7 +162,17 @@ class InterviewSerializer(serializers.ModelSerializer):
             except Application.DoesNotExist:
                 return False
         return False
-    
+    def get_attempted(self, obj):
+        """
+        Checks if the authenticated user has attempted this interview.
+        """
+        request = self.context.get("request")
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            return InterviewSession.objects.filter(
+                Application__user=request.user,
+                Application__interview=obj
+            ).exists()
+        return False
 class ApplyApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
