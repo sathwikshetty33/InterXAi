@@ -3,6 +3,9 @@ import Header from '../components/ui/header';
 import Footer from '../components/ui/footer';
 import { Calendar, Clock, Users, Plus, Trash2, ChevronRight, ChevronLeft, Save, Eye, FileText, Code, Brain, Settings } from 'lucide-react';
 import { getAuthToken } from '../utils/handleToken';
+import { useParams, useNavigate } from 'react-router-dom';
+
+
 
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -284,9 +287,7 @@ const QuestionsConfig = ({ onNext, onBack, formData, setFormData }) => {
 
  // Replace the generateQuestionsWithGemini function with this corrected version:
 
-const generateQuestionsWithGemini = async () => {
-  
-
+ const generateQuestionsWithGemini = async () => {
   if (!GEMINI_API_KEY) {
     alert('Gemini API key not configured');
     return;
@@ -294,7 +295,7 @@ const generateQuestionsWithGemini = async () => {
 
   setIsGenerating(true);
   try {
-    const prompt = `Generate ${Math.ceil(formData.Dev / 10)} technical interview questions for a ${formData.post} position with ${formData.experience} years of experience. Job description: ${formData.desc}. 
+    const prompt = `Generate 1 technical interview question for a ${formData.post} position with ${formData.experience} years of experience. Job description: ${formData.desc}. 
     
     Return ONLY a valid JSON array of objects with 'question' and 'answer' fields. Make questions relevant to the role and experience level. Do not include any markdown formatting or explanatory text.
     
@@ -367,11 +368,12 @@ const generateQuestionsWithGemini = async () => {
         );
         
         if (validQuestions.length > 0) {
+          // FIXED: Add to existing questions instead of replacing them
           setFormData(prev => ({
             ...prev,
-            questions: validQuestions.slice(0, 10) // Limit to 10 questions
+            questions: [...prev.questions, ...validQuestions.slice(0, 1)] // Only add 1 question at a time
           }));
-          alert(`Successfully generated ${validQuestions.length} questions!`);
+          alert(`Successfully generated and added 1 question!`);
         } else {
           throw new Error('No valid questions found in response');
         }
@@ -390,7 +392,6 @@ const generateQuestionsWithGemini = async () => {
     setIsGenerating(false);
   }
 };
-
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20">
       <div className="flex items-center justify-between mb-6">
@@ -573,7 +574,7 @@ const generateQuestionsWithGemini = async () => {
 };
 
 // Review and Submit Page
-const ReviewSubmit = ({ onBack, formData, onSubmit, isLoading }) => {
+const ReviewSubmit = ({ onBack, formData, onSubmit, isLoading, isEditMode })  => {
   const formatDateTime = (dateTime) => {
     return new Date(dateTime).toLocaleString();
   };
@@ -724,7 +725,7 @@ const ReviewSubmit = ({ onBack, formData, onSubmit, isLoading }) => {
           className="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg font-medium hover:from-green-600 hover:to-blue-600 transition-all duration-300 disabled:opacity-50 flex items-center space-x-2"
         >
           <Save className="w-4 h-4" />
-          <span>{isLoading ? 'Creating Interview...' : 'Create Interview'}</span>
+          <span>{isLoading ? (isEditMode ? 'Updating Interview...' : 'Creating Interview...') : (isEditMode ? 'Update Interview' : 'Create Interview')}</span>
         </button>
       </div>
     </div>
@@ -753,10 +754,21 @@ const InterviewCreation = () => {
     questions: [],
     dsa_topics: []
   });
+  const { id } = useParams(); // Get interview ID from URL
+  const navigate = useNavigate();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalData, setOriginalData] = useState(null);
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  useEffect(() => {
+    if (id) {
+      setIsEditMode(true);
+      loadInterviewData(id);
+    }
+  }, [id]);
 
   const showMessage = (msg, type = 'info') => {
     setMessage(msg);
@@ -780,6 +792,50 @@ const InterviewCreation = () => {
     setCurrentStep(prev => prev - 1);
   };
 
+  const loadInterviewData = async (interviewId) => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${baseUrl}interview/get-interview/${interviewId}/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Token ${token}`,
+        },
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        setOriginalData(data);
+        
+        // Convert ISO strings back to datetime-local format
+        const formatForInput = (isoString) => {
+          return new Date(isoString).toISOString().slice(0, 16);
+        };
+  
+        setFormData({
+          desc: data.desc || '',
+          post: data.post || '',
+          experience: data.experience || 0,
+          submissionDeadline: formatForInput(data.submissionDeadline),
+          startTime: formatForInput(data.startTime),
+          endTime: formatForInput(data.endTime),
+          duration: data.duration || 60,
+          DSA: data.DSA || 60,
+          Dev: data.Dev || 40,
+          ask_questions_on_resume: data.ask_questions_on_resume || true,
+          questions: data.questions || [],
+          dsa_topics: data.dsa_topics || []
+        });
+      } else {
+        showMessage('Failed to load interview data', 'error');
+      }
+    } catch (error) {
+      console.error('Error loading interview:', error);
+      showMessage('Error loading interview data', 'error');
+    }
+  };
+
+
   const handleSubmit = async () => {
     setIsLoading(true);
   
@@ -796,68 +852,85 @@ const InterviewCreation = () => {
         Dev: formData.Dev,
         ask_questions_on_resume: formData.ask_questions_on_resume,
         questions: formData.questions,
-        dsa_topics: formData.dsa_topics
+        dsa_topics: formData.dsa_topics,
       };
   
-      const token = getAuthToken(); // Get token from localStorage manually
-
-const response = await fetch(`${baseUrl}interview/create-interview/`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: `Token ${token}`,
-  },
-  body: JSON.stringify(payload),
-});
-
+      const token = getAuthToken();
+      const url = isEditMode
+        ? `${baseUrl}interview/edit-interview/${id}/`
+        : `${baseUrl}interview/create-interview/`;
+  
+      const method = isEditMode ? 'PUT' : 'POST';
+  
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Token ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
   
       if (response.ok) {
-        const data = await response.json();
-        showMessage('Interview created successfully!', 'success');
+        const successMessage = isEditMode
+          ? 'Interview updated successfully!'
+          : 'Interview created successfully!';
+        showMessage(successMessage, 'success');
   
-        // Reset the form
+        // Navigate back to organization dashboard using orgId from query param
         setTimeout(() => {
-          setFormData({
-            desc: '',
-            post: '',
-            experience: 0,
-            submissionDeadline: '',
-            startTime: '',
-            endTime: '',
-            duration: 60,
-            DSA: 60,
-            Dev: 40,
-            ask_questions_on_resume: true,
-            questions: [],
-            dsa_topics: []
-          });
-          setCurrentStep(1);
+          const queryParams = new URLSearchParams(window.location.search);
+          const orgId = queryParams.get('orgId');
+  
+          if (isEditMode && orgId) {
+            navigate(`/org-dashboard/${orgId}`);
+          } else {
+            setFormData({
+              desc: '',
+              post: '',
+              experience: 0,
+              submissionDeadline: '',
+              startTime: '',
+              endTime: '',
+              duration: 60,
+              DSA: 60,
+              Dev: 40,
+              ask_questions_on_resume: true,
+              questions: [],
+              dsa_topics: [],
+            });
+            setCurrentStep(1);
+          }
         }, 2000);
       } else {
-        let errorMessage = 'Failed to create interview';
+        let errorMessage = isEditMode
+          ? 'Failed to update interview'
+          : 'Failed to create interview';
         try {
           const errorData = await response.json();
           if (errorData.detail) errorMessage = errorData.detail;
         } catch (err) {
-          // Ignore JSON parse errors (e.g., plain text response)
+          // Ignore JSON parse errors
         }
         showMessage(errorMessage, 'error');
       }
     } catch (error) {
-      console.error('Error creating interview:', error);
+      console.error('Error with interview:', error);
       showMessage('Server error occurred', 'error');
     } finally {
       setIsLoading(false);
     }
   };
   
+  
 
   const getStepTitle = () => {
+    const prefix = isEditMode ? 'Edit ' : '';
     switch (currentStep) {
-      case 1: return 'Interview Setup';
-      case 2: return 'Questions Configuration';
-      case 3: return 'Review & Submit';
-      default: return 'Interview Creation';
+      case 1: return `${prefix}Interview Setup`;
+      case 2: return `${prefix}Questions Configuration`;
+      case 3: return `${prefix}Review & Submit`;
+      default: return `${prefix}Interview Creation`;
     }
   };
 
@@ -920,13 +993,14 @@ const response = await fetch(`${baseUrl}interview/create-interview/`, {
         )}
         
         {currentStep === 3 && (
-          <ReviewSubmit
-            onBack={handleBack}
-            formData={formData}
-            onSubmit={handleSubmit}
-            isLoading={isLoading}
-          />
-        )}
+       <ReviewSubmit
+       onBack={handleBack}
+       formData={formData}
+       onSubmit={handleSubmit}
+       isLoading={isLoading}
+       isEditMode={isEditMode}
+       />
+       )}
       </FormContainer>
       
       <Footer />

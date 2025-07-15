@@ -14,13 +14,14 @@ export default function OrgDashboard() {
   const [visible, setVisible] = useState(false);
   const [editingField, setEditingField] = useState(null);
   const [viewerType, setViewerType] = useState("guest");
+  const [interviews, setInterviews] = useState([]);
+
   const navigate = useNavigate();
   const { id } = useParams();
 
   useEffect(() => {
     const token = getAuthToken();
 
-    // Fetch org data (public)
     fetch(`http://localhost:8000/api/organization/org/${id}/`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch organization data");
@@ -34,7 +35,6 @@ export default function OrgDashboard() {
       .catch(() => alert("Could not load organization details."))
       .finally(() => setLoading(false));
 
-    // Check viewer type only if token is present
     if (token) {
       fetch(`http://localhost:8000/api/organization/check-org/${id}/`, {
         headers: { Authorization: `Token ${token}` },
@@ -44,22 +44,32 @@ export default function OrgDashboard() {
           return res.json();
         })
         .then((data) => {
-          setViewerType(data.is_organization ? "owner" : "guest");
+          if (data.is_organization) {
+            setViewerType("owner");
+            fetch("http://localhost:8000/api/interview/get-interviews/", {
+              headers: { Authorization: `Token ${token}` },
+            })
+              .then((res) => {
+                if (!res.ok) throw new Error("Failed to fetch interviews");
+                return res.json();
+              })
+              .then((data) => setInterviews(data))
+              .catch(() => alert("Could not load interviews."));
+          } else {
+            setViewerType("guest");
+          }
         })
         .catch(() => setViewerType("guest"));
     }
   }, [id]);
 
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSave = async (field) => {
     const token = getAuthToken();
-    if (viewerType !== "owner") return; // Prevent update if not owner
+    if (viewerType !== "owner") return;
 
     try {
       const res = await fetch("http://localhost:8000/api/organization/update/", {
@@ -106,49 +116,30 @@ export default function OrgDashboard() {
       <Header viewerType={viewerType} />
 
       <div className="flex flex-col items-center justify-center py-16 px-4 relative z-10">
-        <div className={`max-w-5xl w-full transform transition-all duration-1000 ${visible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+        <div className={`max-w-5xl w-full transform transition-all duration-1000 ${visible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
           <div className="bg-slate-800/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-700/50 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-400/50 to-transparent animate-shimmer"></div>
 
             <div className="flex flex-col items-center space-y-6">
               {viewerType === "owner" && editingField === "photo" ? (
                 <div className="flex flex-col items-center">
-                  <input
-                    type="text"
-                    name="photo"
-                    value={formData.photo}
-                    onChange={handleChange}
-                    className="bg-slate-700 text-white p-2 rounded mb-2"
-                  />
+                  <input type="text" name="photo" value={formData.photo} onChange={handleChange} className="bg-slate-700 text-white p-2 rounded mb-2" />
                   <button onClick={() => handleSave("photo")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
                 </div>
               ) : (
-                <img
-                  src={photo}
-                  alt="Organization Logo"
-                  className={`w-28 h-28 rounded-full border-2 border-purple-500 shadow-lg ${viewerType === "owner" ? "cursor-pointer" : ""}`}
-                  onClick={() => viewerType === "owner" && setEditingField("photo")}
-                />
+                <img src={photo} alt="Organization Logo" className={`w-28 h-28 rounded-full border-2 border-purple-500 shadow-lg ${viewerType === "owner" ? "cursor-pointer" : ""}`} onClick={() => viewerType === "owner" && setEditingField("photo")} />
               )}
 
               <h1 className="text-3xl font-bold flex items-center gap-2">
                 {viewerType === "owner" && editingField === "orgname" ? (
                   <>
-                    <input
-                      type="text"
-                      name="orgname"
-                      value={formData.orgname}
-                      onChange={handleChange}
-                      className="bg-slate-700 text-white p-2 rounded"
-                    />
+                    <input type="text" name="orgname" value={formData.orgname} onChange={handleChange} className="bg-slate-700 text-white p-2 rounded" />
                     <button onClick={() => handleSave("orgname")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
                   </>
                 ) : (
                   <>
                     {orgname}
-                    {viewerType === "owner" && (
-                      <Pencil className="w-4 h-4 cursor-pointer" onClick={() => setEditingField("orgname")} />
-                    )}
+                    {viewerType === "owner" && <Pencil className="w-4 h-4 cursor-pointer" onClick={() => setEditingField("orgname")} />}
                   </>
                 )}
               </h1>
@@ -157,18 +148,11 @@ export default function OrgDashboard() {
                 <p className="text-sm text-slate-400 flex items-center gap-2">
                   <span className="text-purple-300 font-semibold">Email:</span> {email}
                 </p>
-
                 <p className="text-sm text-slate-400 flex items-center gap-2">
                   <span className="text-purple-300 font-semibold">Address:</span>
                   {viewerType === "owner" && editingField === "address" ? (
                     <>
-                      <input
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        className="bg-slate-700 text-white p-1 rounded ml-2"
-                      />
+                      <input type="text" name="address" value={formData.address} onChange={handleChange} className="bg-slate-700 text-white p-1 rounded ml-2" />
                       <button onClick={() => handleSave("address")} className="text-xs bg-purple-600 px-2 py-1 rounded ml-2">Save</button>
                     </>
                   ) : (
@@ -183,13 +167,7 @@ export default function OrgDashboard() {
                   <span className="text-purple-300 font-semibold">Description:</span>
                   {viewerType === "owner" && editingField === "Description" ? (
                     <div className="flex flex-col w-full">
-                      <textarea
-                        name="Description"
-                        value={formData.Description}
-                        onChange={handleChange}
-                        rows={3}
-                        className="bg-slate-700 text-white p-2 rounded w-full mt-1"
-                      />
+                      <textarea name="Description" value={formData.Description} onChange={handleChange} rows={3} className="bg-slate-700 text-white p-2 rounded w-full mt-1" />
                       <button onClick={() => handleSave("Description")} className="text-sm bg-purple-600 px-3 py-1 rounded mt-2 self-end">Save</button>
                     </div>
                   ) : (
@@ -202,6 +180,25 @@ export default function OrgDashboard() {
               </div>
             </div>
           </div>
+
+          {viewerType === "owner" && interviews.length > 0 && (
+            <div className="mt-12">
+              <h2 className="text-2xl font-semibold mb-4 text-purple-300">Your Interviews</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {interviews.map((interview) => (
+                  <div key={interview.id} className="bg-slate-800/40 p-6 rounded-xl border border-slate-700/50 shadow-md space-y-3">
+                    <p><span className="text-purple-400">Post:</span> {interview.post}</p>
+                    <p><span className="text-purple-400">Description:</span> {interview.desc}</p>
+                    <p><span className="text-purple-400">Experience:</span> {interview.experience} years</p>
+                    <p><span className="text-purple-400">Deadline:</span> {interview.submissionDeadline}</p>
+                    <button onClick={() => navigate(`/interview/${interview.id}?orgId=${id}`)} className="mt-2 bg-purple-600 px-4 py-2 rounded text-sm hover:bg-purple-700 transition">
+                      Edit Interview
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
