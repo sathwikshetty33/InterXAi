@@ -173,11 +173,11 @@ class InterviewSerializer(serializers.ModelSerializer):
                 Application__interview=obj
             ).exists()
         return False
-class ApplyApplicationSerializer(serializers.ModelSerializer):
+class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
-        fields = ["id", "interview", "approved", "resume", "applied_at", "extratedResume", "score"]
-        read_only_fields = ["id", "interview", "applied_at", "extratedResume", "score", "approved"]
+        fields = ["id", "interview", "approved", "resume", "applied_at", "extratedResume", "score", "approved","extratedResume","score","shortlisting_decision","feedback"]
+        read_only_fields = ["id", "interview", "applied_at", "extratedResume", "score", "approved","extratedResume","score","shortlisting_decision","feedback"]
 
     def create(self, validated_data):
         return Application.objects.create(**validated_data)
@@ -187,3 +187,8 @@ class ApplyApplicationSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+class LeaderBoardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InterviewSession
+        fields = '__all__'
