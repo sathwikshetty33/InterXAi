@@ -22,7 +22,7 @@ class InterviewManager(ABC):
         if not groq_api_key:
             raise ValueError("GROQ_API_KEY environment variable must be set or passed in config")
         
-        # Initialize ChatGroq instead of Ollama
+        # Initialize ChatGroq 
         self.llm = ChatGroq(
             model=self.config.llm_model,
             temperature=self.config.temperature,

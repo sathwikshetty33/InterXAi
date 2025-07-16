@@ -376,7 +376,7 @@ class ApplicationView(APIView):
             return Response({"error": f"Failed to process PDF: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Validate and save the application
-        serializer = ApplyApplicationSerializer(data=request.data)
+        serializer = ApplicationSerializer(data=request.data)
         if serializer.is_valid():
             application = serializer.save(
                 user=request.user,
@@ -411,3 +411,40 @@ class ApplicationView(APIView):
             }, status=status.HTTP_201_CREATED)
 
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def get(self, request, id):
+        try:
+            interview = Custominterviews.objects.get(id=id)
+        except Custominterviews.DoesNotExist:
+            return Response({"error" : "Interview not found"}, status=status.HTTP_404_NOT_FOUND)
+        org = interview.org
+        if request.user != org.org:
+            return Response({"error" : "You are not authorized to view this interview"}, status=status.HTTP_403_FORBIDDEN)
+        applications = Application.objects.filter(interview=interview)
+        serializer = ApplicationSerializer(applications,many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    def put(self, request, id):
+        try:
+            application = Application.objects.get(id=id)
+        except Application.DoesNotExist:
+            return Response({"error" : "Application not found"}, status=status.HTTP_404_NOT_FOUND)
+        if request.user != application.interview.org.org:
+            return Response({"error" : "You are not authorized to update this application"}, status=status.HTTP_403_FORBIDDEN)
+        application.approved = not application.approved
+        application.save()
+        return Response({"message" : "Application status updated"}, status=status.HTTP_200_OK)
+    
+class LeaderBoardView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request,id):
+        interview = Custominterviews.objects.get(id=id)
+        if request.user != interview.org.org:
+            return Response({"error" : "You are not authorized to view this leaderboard"}, status=status.HTTP_403_FORBIDDEN)
+        application = Application.objects.filter(interview=interview)
+        session = InterviewSession.objects.filter(Application__in=application)
+        serialzer = LeaderBoardSerializer(session, many=True)
+        print(serialzer)
+        print(serialzer.data)
+        return Response(serialzer.data, status=status.HTTP_200_OK)
