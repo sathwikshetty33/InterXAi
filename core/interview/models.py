@@ -93,7 +93,7 @@ class postings(models.Model):
     def __str__(self):
         return f'{self.org.orgname}-{self.post}'
 class leaderBoard(models.Model):
-    Application = models.ForeignKey(Application, on_delete=models.CASCADE)
+    application = models.ForeignKey(Application, on_delete=models.CASCADE,related_name='application')
     Score = models.FloatField()
 
     def __str__(self):
