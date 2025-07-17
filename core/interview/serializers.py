@@ -173,11 +173,41 @@ class InterviewSerializer(serializers.ModelSerializer):
                 Application__interview=obj
             ).exists()
         return False
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username"]
+
 class ApplicationSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = Application
-        fields = ["id", "interview", "approved", "resume", "applied_at", "extratedResume", "score", "approved","extratedResume","score","shortlisting_decision","feedback"]
-        read_only_fields = ["id", "interview", "applied_at", "extratedResume", "score", "approved","extratedResume","score","shortlisting_decision","feedback"]
+        fields = [
+            "id",
+            "user",
+            "interview",
+            "approved",
+            "resume",
+            "applied_at",
+            "extratedResume",
+            "score",
+            "shortlisting_decision",
+            "feedback"
+        ]
+        read_only_fields = [
+            "id",
+            "user",
+            "interview",
+            "applied_at",
+            "extratedResume",
+            "score",
+            "approved",
+            "shortlisting_decision",
+            "feedback"
+        ]
+
 
     def create(self, validated_data):
         return Application.objects.create(**validated_data)
@@ -189,6 +219,19 @@ class ApplicationSerializer(serializers.ModelSerializer):
         return instance
 
 class LeaderBoardSerializer(serializers.ModelSerializer):
+    Application = ApplicationSerializer(read_only=True)
+    user = UserSerializer(read_only=True)
     class Meta:
         model = InterviewSession
-        fields = '__all__'
+        fields = [
+        "id",
+        "start_time",
+        "end_time",
+        "status",
+        "feedback",
+        "score",
+        "recommendation",
+        "strengths",
+        "Application",
+        "user"
+        ]
