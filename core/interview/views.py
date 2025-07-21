@@ -84,6 +84,7 @@ class InterviewSessionInitializerView(APIView):
         if question:
             session.current_question_index = 0
             session.status = "ongoing"
+            session.save()
             interaction = Interaction.objects.create(session=session, Customquestion=question)
             follow_up = FollowUpQuestions.objects.create(Interaction=interaction, question=question.question)
         return Response({"message": "Interview session initialized successfully.", "session_id": session.id, "question": question.question}, status=status.HTTP_201_CREATED)
@@ -248,7 +249,7 @@ class InterviewSessionView(APIView):
                         final_evaluation_response = self.perform_final_evaluation(session)
                         
                         return Response({
-                            "completed": False
+                            "completed": True
                         }, status=status.HTTP_200_OK)
                         
             except Exception as e:

@@ -295,9 +295,17 @@ const QuestionsConfig = ({ onNext, onBack, formData, setFormData }) => {
 
   setIsGenerating(true);
   try {
-    const prompt = `Generate 1 technical interview question for a ${formData.post} position with ${formData.experience} years of experience. Job description: ${formData.desc}. 
-    
-    Return ONLY a valid JSON array of objects with 'question' and 'answer' fields. Make questions relevant to the role and experience level. Do not include any markdown formatting or explanatory text.
+    const existingQuestions = formData.questions.map(q => q.question).join("\n");
+const prompt = `
+Generate 1 new technical interview question for a ${formData.post} position with ${formData.experience} years of experience. 
+Job description: ${formData.desc}. 
+
+Do NOT repeat these questions:
+${existingQuestions}
+
+Return ONLY JSON array of objects with 'question' and 'answer' fields.
+
+
     
     Example format:
     [
@@ -840,22 +848,61 @@ const InterviewCreation = () => {
     setIsLoading(true);
   
     try {
+      // Validate form data before submission
+      if (!formData.desc.trim()) {
+        showMessage('Description is required', 'error');
+        setIsLoading(false);
+        return;
+      }
+  
+      if (!formData.post.trim()) {
+        showMessage('Position is required', 'error');
+        setIsLoading(false);
+        return;
+      }
+  
+      // Ensure dates are valid
+      const submissionDeadline = new Date(formData.submissionDeadline);
+      const startTime = new Date(formData.startTime);
+      const endTime = new Date(formData.endTime);
+  
+      if (isNaN(submissionDeadline.getTime()) || isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        showMessage('Invalid date format', 'error');
+        setIsLoading(false);
+        return;
+      }
+  
+      // Check if DSA + Dev equals 100
+      if (formData.DSA + formData.Dev !== 100) {
+        showMessage('DSA and Dev percentages must total 100%', 'error');
+        setIsLoading(false);
+        return;
+      }
+  
       const payload = {
-        desc: formData.desc,
-        post: formData.post,
-        experience: formData.experience.toString(),
-        submissionDeadline: new Date(formData.submissionDeadline).toISOString(),
-        startTime: new Date(formData.startTime).toISOString(),
-        endTime: new Date(formData.endTime).toISOString(),
-        duration: formData.duration,
-        DSA: formData.DSA,
-        Dev: formData.Dev,
-        ask_questions_on_resume: formData.ask_questions_on_resume,
-        questions: formData.questions,
-        dsa_topics: formData.dsa_topics,
+        desc: formData.desc.trim(),
+        post: formData.post.trim(),
+        experience: parseInt(formData.experience), // Keep as number, not string
+        submissionDeadline: submissionDeadline.toISOString(),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        duration: parseInt(formData.duration),
+        DSA: parseInt(formData.DSA),
+        Dev: parseInt(formData.Dev),
+        ask_questions_on_resume: Boolean(formData.ask_questions_on_resume),
+        questions: formData.questions.filter(q => q.question.trim() && q.answer.trim()), // Filter out empty questions
+        dsa_topics: formData.dsa_topics.filter(topic => topic.topic.trim()), // Filter out empty topics
       };
   
+      console.log('Payload being sent:', JSON.stringify(payload, null, 2)); // Debug log
+  
       const token = getAuthToken();
+      if (!token) {
+        showMessage('Authentication token not found. Please login again.', 'error');
+        setIsLoading(false);
+        return;
+      }
+  
       const url = isEditMode
         ? `${baseUrl}interview/edit-interview/${id}/`
         : `${baseUrl}interview/create-interview/`;
@@ -921,7 +968,6 @@ const InterviewCreation = () => {
       setIsLoading(false);
     }
   };
-  
   
 
   const getStepTitle = () => {
