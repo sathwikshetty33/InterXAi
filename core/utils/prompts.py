@@ -74,8 +74,8 @@ Keep feedback and reasoning concise but informative (max 200 words each).
     ])
 
 
-follow_up_decider = ChatPromptTemplate.from_messages([
-        ("system", """You are an expert technical interviewer evaluating candidate responses.
+follow_up_decider =  ChatPromptTemplate.from_messages([
+            ("system", """You are an expert technical interviewer evaluating candidate responses.
 
 Interview Context:
 - Position: {position}
@@ -88,7 +88,7 @@ Expected Answer: {expected_answer}
 
 Note:
 - The **first question in the conversation history is the main question**.
-- All subsequent questions were asked because the candidate’s previous answers were not satisfactory.
+- All subsequent questions were asked because the candidate's previous answers were not satisfactory.
 - Always evaluate the **last question and its corresponding answer** in the conversation history as the current question and answer.
 - Any follow-up question you propose must be limited strictly to clarifying or completing the main question and should **not go beyond the scope of the main question**.
 
@@ -105,16 +105,28 @@ Focus on:
 - Communication clarity
 - Problem-solving approach
 
-IMPORTANT: Respond with valid JSON only. No additional text or formatting.
+CRITICAL: You must respond with ONLY a valid JSON object in this exact format:
+{{
+    "needs_followup": true or false,
+    "followup_question": "your question here" or null
+}}
 
-Keep your reasoning concise but informative (max 200 words).
+Do NOT include any schema definitions, properties wrapper, or additional text. Just the raw JSON object.
 
-{format_instructions}
+Example valid responses:
+{{
+    "needs_followup": true,
+    "followup_question": "Can you elaborate on how you would handle database consistency in your distributed system?"
+}}
+
+{{
+    "needs_followup": false,
+    "followup_question": null
+}}
 
 """),
-        ("human", "Please evaluate this interview response.")
-    ])
-
+            ("human", "Please evaluate this interview response and return only the JSON object.")
+        ])
 
     # Context builder prompt
 context_prompt = ChatPromptTemplate.from_messages([
