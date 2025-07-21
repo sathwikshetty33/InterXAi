@@ -8,6 +8,8 @@ import ProfileSetup from '../pages/ProfileSetup';
 import OrgSignup from '../pages/OrgSignup'
 import OrgDashboard from '../pages/OrgDashboard';
 import Interview from '../pages/Interview';
+import Application from '../pages/Application';
+import InterviewSession from "../pages/InterviewSession";
 
 export default function AppRoutes() {
   return (
@@ -22,6 +24,9 @@ export default function AppRoutes() {
       <Route path="/org-dashboard/:id" element={<OrgDashboard />} />
       <Route path="/interview/:id" element={<Interview />} />
       <Route path="/interview" element={<Interview />} />
+      <Route path="/applications/:id" element={<Application />} />
+      <Route path="/interview/start/:interviewId" element={<InterviewSession />} />
+
       
 
       {/* Add more routes as needed */}

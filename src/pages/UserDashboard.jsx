@@ -94,37 +94,68 @@ export default function UserDashboard() {
     }
   };
 
+  // Replace your existing handleResumeUpload function with this:
+
   const handleResumeUpload = async (e, interviewId) => {
     const file = e.target.files[0];
     if (!file) return;
-
+  
     // Check file type
     if (file.type !== "application/pdf") {
       alert("Please upload a PDF file only.");
       return;
     }
-
+  
     // Check file size (e.g., max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("File size should not exceed 5MB.");
       return;
     }
-
+  
     setUploadingResume(prev => ({ ...prev, [interviewId]: true }));
-
+  
+    // Upload directly to Pinata
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "unsigned_resume_upload");
-
+    
+    // Optional: Add metadata
+    const metadata = JSON.stringify({
+      name: `resume_${interviewId}_${file.name}`,
+      keyvalues: {
+        interview_id: interviewId,
+        uploaded_at: new Date().toISOString()
+      }
+    });
+    formData.append("pinataMetadata", metadata);
+  
+    const options = JSON.stringify({
+      cidVersion: 1,
+    });
+    formData.append("pinataOptions", options);
+  
     try {
-      const res = await fetch("https://api.cloudinary.com/v1_1/dahztzd3e/auto/upload", {
+      const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
         method: "POST",
+        headers: {
+          // Use the correct environment variable format for your build tool
+          'Authorization': `Bearer ${import.meta.env.VITE_PINATA_JWT_TOKEN}`,
+        },
         body: formData,
       });
+  
       const data = await res.json();
-      if (data.secure_url) {
-        setResumeFiles((prev) => ({ ...prev, [interviewId]: data.secure_url }));
+      
+      if (res.ok && data.IpfsHash) {
+        const fileUrl = `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`;
+        
+        // Store the file URL in your state
+        setResumeFiles((prev) => ({
+          ...prev,
+          [interviewId]: fileUrl
+        }));
+        
         alert("Resume uploaded successfully!");
+        
       } else {
         alert("Failed to upload resume.");
       }
@@ -149,7 +180,8 @@ export default function UserDashboard() {
           "Content-Type": "application/json",
           Authorization: `Token ${token}`,
         },
-        body: JSON.stringify({ resume: resumeUrl }),
+        body: JSON.stringify({ resume_url: resumeUrl }),
+
       });
 
       const data = await response.json();

@@ -53,7 +53,30 @@ export default function OrgDashboard() {
                 if (!res.ok) throw new Error("Failed to fetch interviews");
                 return res.json();
               })
-              .then((data) => setInterviews(data))
+              .then((data) => {
+                // Add `hasApplications` flag for each interview
+                const fetchApplications = async () => {
+                  const updated = await Promise.all(
+                    data.map(async (interview) => {
+                      try {
+                        const res = await fetch(
+                          `http://localhost:8000/api/interview/get-applications/${interview.id}/`,
+                          { headers: { Authorization: `Token ${token}` } }
+                        );
+                        if (res.ok) {
+                          const apps = await res.json();
+                          return { ...interview, hasApplications: apps.length > 0 };
+                        }
+                      } catch (err) {
+                        console.error("Error checking applications", err);
+                      }
+                      return { ...interview, hasApplications: false };
+                    })
+                  );
+                  setInterviews(updated);
+                };
+                fetchApplications();
+              })
               .catch(() => alert("Could not load interviews."));
           } else {
             setViewerType("guest");
@@ -194,6 +217,11 @@ export default function OrgDashboard() {
                     <button onClick={() => navigate(`/interview/${interview.id}?orgId=${id}`)} className="mt-2 bg-purple-600 px-4 py-2 rounded text-sm hover:bg-purple-700 transition">
                       Edit Interview
                     </button>
+                    {interview.hasApplications && (
+                      <button onClick={() => navigate(`/applications/${interview.id}`)} className="mt-2 bg-blue-600 px-4 py-2 rounded text-sm hover:bg-blue-700 transition ml-2">
+                        View Applications
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
