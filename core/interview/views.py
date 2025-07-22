@@ -479,3 +479,19 @@ class LeaderBoardView(APIView):
                 "interview_history": "None",
                 "error": str(e)
             }, status=status.HTTP_200_OK)
+
+
+class CheatingDetection(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def put(self, request, id):
+        try:
+            session = InterviewSession.objects.get(id=id)
+            if request.user != session.Application.user:
+                return Response({"error": "You are not authorized to access this session"}, status=status.HTTP_403_FORBIDDEN)
+            session.status = 'cheated'
+            session.save()
+            return Response({"message": "Session marked as cheated"}, status=status.HTTP_200_OK)
+        except InterviewSession.DoesNotExist:
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
