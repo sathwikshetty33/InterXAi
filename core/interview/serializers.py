@@ -235,3 +235,4 @@ class LeaderBoardSerializer(serializers.ModelSerializer):
         "Application",
         "user"
         ]
+    

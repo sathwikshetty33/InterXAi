@@ -272,21 +272,9 @@ class InterviewSessionView(APIView):
                 question_data = {
                     "main_question": interaction.Customquestion.question,
                     "expected_answer": interaction.Customquestion.answer,
-                    "conversation": [],
                     "individual_score": interaction.score,
                     "individual_feedback": interaction.feedback
                 }
-                
-                # Get all follow-up questions and answers for this interaction
-                follow_ups = FollowUpQuestions.objects.filter(
-                    Interaction=interaction
-                ).order_by('created_at')
-                
-                for follow_up in follow_ups:
-                    question_data["conversation"].append({
-                        "question": follow_up.question,
-                        "answer": follow_up.answer if follow_up.answer else "No answer provided"
-                    })
                 
                 interview_history.append(question_data)
             
