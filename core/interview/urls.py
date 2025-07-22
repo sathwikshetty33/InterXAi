@@ -13,4 +13,5 @@ urlpatterns = [
     path('update-application/<int:id>/',views.ApplicationView.as_view(),name='update_appliation'),
     path('interview-session-initializer/<int:id>/', views.InterviewSessionInitializerView.as_view(), name='interview_session_initializer'),
     path('leaderboard/<int:id>/',views.LeaderBoardView.as_view(), name='leaderboard'),
+    path('cheated/<int:id>/',views.CheatingDetection.as_view(),name="cheating_updater"),
 ]
