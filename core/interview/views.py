@@ -15,6 +15,10 @@ from utils.ResumeExtractor import ResumeExtractor
 from utils.Evaluator import Evaluator
 from utils.FinalEvaluator import FinalEvaluator
 from utils.FollowUpdecider import FollowUpDecider
+import requests
+from PyPDF2 import PdfReader
+from django.core.files.base import ContentFile
+
 # Create your views here.
 class CustomInterviewView(APIView):
     permission_classes = [IsAuthenticated, IsOrganization]
@@ -323,9 +327,6 @@ class GetAllInterviewsView(APIView):
         ).distinct()
         serializer = InterviewSerializer(interviews, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
-import requests
-from PyPDF2 import PdfReader
-from django.core.files.base import ContentFile
 
 class ApplicationView(APIView):
     permission_classes = [IsAuthenticated]
@@ -427,13 +428,54 @@ class LeaderBoardView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
 
-    def get(self, request,id):
+    def get(self, request, id):
         interview = Custominterviews.objects.get(id=id)
         if request.user != interview.org.org:
-            return Response({"error" : "You are not authorized to view this leaderboard"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "You are not authorized to view this leaderboard"}, status=status.HTTP_403_FORBIDDEN)
+
         application = Application.objects.filter(interview=interview)
         session = InterviewSession.objects.filter(Application__in=application)
-        serialzer = LeaderBoardSerializer(session, many=True)
-        print(serialzer)
-        print(serialzer.data)
-        return Response(serialzer.data, status=status.HTTP_200_OK)
+        serializer = LeaderBoardSerializer(session, many=True)
+
+        try:
+            # Get all interactions for these sessions
+            interactions = Interaction.objects.filter(session__in=session).order_by('created_at')
+            
+            if not interactions.exists():
+                return Response({"data": serializer.data, "interview_history": "None"}, status=status.HTTP_200_OK)
+            
+            # Build comprehensive interview history
+            interview_history = []
+            
+            for interaction in interactions:
+                question_data = {
+                    "main_question": interaction.Customquestion.question,
+                    "expected_answer": interaction.Customquestion.answer,
+                    "conversation_history": [],
+                    "individual_score": interaction.score,
+                    "individual_feedback": interaction.feedback
+                }
+                
+                # Fetch follow-up questions and answers for this interaction
+                follow_up_questions = FollowUpQuestions.objects.filter(Interaction=interaction).order_by('created_at')
+                
+                for follow_up in follow_up_questions:
+                    qa_pair = {
+                        "question": follow_up.question,
+                        "answer": follow_up.answer if follow_up.answer else "No answer provided"
+                    }
+                    question_data["conversation_history"].append(qa_pair)
+                
+                interview_history.append(question_data)
+                
+            return Response({
+                "data": serializer.data, 
+                "interview_history": interview_history
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                "data": serializer.data, 
+                "interview_history": "None",
+                "error": str(e)
+            }, status=status.HTTP_200_OK)

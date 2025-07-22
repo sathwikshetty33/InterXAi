@@ -235,4 +235,14 @@ class LeaderBoardSerializer(serializers.ModelSerializer):
         "Application",
         "user"
         ]
-    
+        def to_representation(self, instance):
+            data = super().to_representation(instance)
+            
+            # Keep only specific fields from Application
+            if 'Application' in data and data['Application']:
+                filtered_application = {
+                    "id": data['Application']['id'],
+                }
+                data['Application'] = filtered_application
+                
+            return data
