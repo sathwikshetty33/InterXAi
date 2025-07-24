@@ -6,6 +6,8 @@ import Header from '../components/ui/header';
 import Footer from '../components/ui/footer';
 import ProfileForm from "../components/forms/ProfileForm";
 import { getAuthToken } from "../utils/handleToken";
+import { toast} from 'react-toastify';
+
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
@@ -39,12 +41,12 @@ export default function ProfileSetup() {
             if (data.token) {
               localStorage.setItem("authToken", data.token);
             } else {
-              alert("Login failed. Please sign in again.");
+              toast.error("Login failed. Please sign in again.");
               navigate("/signin");
             }
           })
           .catch(() => {
-            alert("Error logging in.");
+            toast.error("Error logging in.");
             navigate("/signin");
           })
           .finally(() => setTokenChecked(true));
@@ -83,13 +85,13 @@ export default function ProfileSetup() {
         if (idData.success) {
           navigate(`/profile/${idData.profile_id}`);
         } else {
-          alert("Profile saved, but couldn't retrieve user ID.");
+          toast.error("Profile saved, but couldn't retrieve user ID.");
         }
       } else {
-        alert("Failed to save profile: " + JSON.stringify(data.errors));
+        toast.error("Failed to save profile: " + JSON.stringify(data.errors));
       }
     } catch (error) {
-      alert("Server error while saving profile.");
+      toast.error("Server error while saving profile.");
     } finally {
       setLoading(false);
     }

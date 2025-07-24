@@ -4,6 +4,8 @@ import Footer from '../components/ui/footer';
 import { Calendar, Clock, Users, Plus, Trash2, ChevronRight, ChevronLeft, Save, Eye, FileText, Code, Brain, Settings } from 'lucide-react';
 import { getAuthToken } from '../utils/handleToken';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast} from 'react-toastify';
+
 
 
 
@@ -59,7 +61,6 @@ const InterviewSetup = ({ onNext, formData, setFormData }) => {
     
     if (!formData.desc.trim()) newErrors.desc = 'Description is required';
     if (!formData.post.trim()) newErrors.post = 'Position is required';
-    if (!formData.experience || formData.experience < 0) newErrors.experience = 'Valid experience is required';
     if (!formData.submissionDeadline) newErrors.submissionDeadline = 'Submission deadline is required';
     if (!formData.startTime) newErrors.startTime = 'Start time is required';
     if (!formData.endTime) newErrors.endTime = 'End time is required';
@@ -289,7 +290,7 @@ const QuestionsConfig = ({ onNext, onBack, formData, setFormData }) => {
 
  const generateQuestionsWithGemini = async () => {
   if (!GEMINI_API_KEY) {
-    alert('Gemini API key not configured');
+    toast.error('Gemini API key not configured');
     return;
   }
 
@@ -381,7 +382,7 @@ Return ONLY JSON array of objects with 'question' and 'answer' fields.
             ...prev,
             questions: [...prev.questions, ...validQuestions.slice(0, 1)] // Only add 1 question at a time
           }));
-          alert(`Successfully generated and added 1 question!`);
+          toast.success(`Successfully generated and added 1 question!`);
         } else {
           throw new Error('No valid questions found in response');
         }
@@ -395,7 +396,7 @@ Return ONLY JSON array of objects with 'question' and 'answer' fields.
     }
   } catch (error) {
     console.error('Error generating questions:', error);
-    alert(`Failed to generate questions: ${error.message}. Please add them manually.`);
+    toast.error(`Failed to generate questions: ${error.message}. Please add them manually.`);
   } finally {
     setIsGenerating(false);
   }

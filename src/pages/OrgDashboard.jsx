@@ -6,6 +6,8 @@ import Header from "../components/ui/header";
 import Footer from "../components/ui/footer";
 import { getAuthToken } from "../utils/handleToken";
 import { Loader2, Pencil } from "lucide-react";
+import { toast} from 'react-toastify';
+
 
 export default function OrgDashboard() {
   const [orgData, setOrgData] = useState(null);
@@ -32,7 +34,7 @@ export default function OrgDashboard() {
         setFormData(data);
         setTimeout(() => setVisible(true), 200);
       })
-      .catch(() => alert("Could not load organization details."))
+      .catch(() => toast.error("Could not load organization details."))
       .finally(() => setLoading(false));
 
     if (token) {
@@ -77,7 +79,7 @@ export default function OrgDashboard() {
                 };
                 fetchApplications();
               })
-              .catch(() => alert("Could not load interviews."));
+              .catch(() => toast.error("Could not load interviews."));
           } else {
             setViewerType("guest");
           }
@@ -109,10 +111,10 @@ export default function OrgDashboard() {
         setOrgData((prev) => ({ ...prev, [field]: formData[field] }));
         setEditingField(null);
       } else {
-        alert("Update failed: " + JSON.stringify(data));
+        toast.error("Update failed: " + JSON.stringify(data));
       }
     } catch {
-      alert("Server error while updating.");
+      toast.error("Server error while updating.");
     }
   };
 
@@ -222,6 +224,9 @@ export default function OrgDashboard() {
                         View Applications
                       </button>
                     )}
+                    <button onClick={() => navigate(`/leaderboard/${interview.id}`)} className="mt-2 bg-blue-600 px-4 py-2 rounded text-sm hover:bg-blue-700 transition ml-2">
+                        View Leaderboard
+                      </button>
                   </div>
                 ))}
               </div>

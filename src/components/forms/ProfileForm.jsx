@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import ImageUploader from "../../utils/ImageUploader"; // <-- Import your component
 
 export default function ProfileForm({
   formData,
@@ -22,24 +23,19 @@ export default function ProfileForm({
       onSubmit={handleSubmit}
       className="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700 space-y-6"
     >
-      {/* Photo URL */}
+      {/* Photo Upload */}
       <div>
-        <label className="block text-sm mb-2">Cloudinary Photo URL</label>
-        <input
-          type="text"
-          name="photo"
-          value={formData.photo}
-          onChange={handleChange}
-          className="bg-slate-700 text-white p-2 w-full rounded"
-          placeholder="Paste Cloudinary image URL here"
-          required
-          disabled={!editable}
-        />
+        <label className="block text-sm mb-2">Profile Photo</label>
+        {editable && (
+          <ImageUploader
+            onUploadSuccess={(url) => setFormData((prev) => ({ ...prev, photo: url }))}
+          />
+        )}
         {formData.photo && showImagePreview && (
           <img
             src={formData.photo}
             alt="Profile Preview"
-            className="w-20 h-20 rounded-full mt-2"
+            className="w-20 h-20 rounded-full mt-2 border border-slate-600"
           />
         )}
       </div>

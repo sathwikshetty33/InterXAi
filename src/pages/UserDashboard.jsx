@@ -6,6 +6,10 @@ import { getAuthToken, fetchWithToken } from "../utils/handleToken";
 import Header from '../components/ui/header';
 import Footer from '../components/ui/footer';
 import { Loader2, Github, Brain, Pencil, Upload, CheckCircle, Clock } from "lucide-react";
+import { toast} from 'react-toastify';
+
+
+
 
 export default function UserDashboard() {
   const { id } = useParams();
@@ -87,10 +91,10 @@ export default function UserDashboard() {
         setProfile((prev) => ({ ...prev, [field]: formData[field] }));
         setEditingField(null);
       } else {
-        alert("Update failed: " + JSON.stringify(data.errors));
+        toast.error("Update failed: " + JSON.stringify(data.errors));
       }
     } catch (error) {
-      alert("Server error while updating.");
+      toast.error("Server error while updating.");
     }
   };
 
@@ -102,13 +106,13 @@ export default function UserDashboard() {
   
     // Check file type
     if (file.type !== "application/pdf") {
-      alert("Please upload a PDF file only.");
+      toast.error("Please upload a PDF file only.");
       return;
     }
   
     // Check file size (e.g., max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert("File size should not exceed 5MB.");
+      toast.error("File size should not exceed 5MB.");
       return;
     }
   
@@ -154,13 +158,13 @@ export default function UserDashboard() {
           [interviewId]: fileUrl
         }));
         
-        alert("Resume uploaded successfully!");
+        toast.success("Resume uploaded successfully!");
         
       } else {
-        alert("Failed to upload resume.");
+        toast.error("Failed to upload resume.");
       }
     } catch (err) {
-      alert("Error uploading resume.");
+      toast.error("Error uploading resume.");
     } finally {
       setUploadingResume(prev => ({ ...prev, [interviewId]: false }));
     }
@@ -169,7 +173,7 @@ export default function UserDashboard() {
   const handleApply = async (interviewId) => {
     const token = getAuthToken();
     const resumeUrl = resumeFiles[interviewId];
-    if (!resumeUrl) return alert("Please upload your resume first.");
+    if (!resumeUrl) return toast.error("Please upload your resume first.");
 
     setApplyingToInterview(prev => ({ ...prev, [interviewId]: true }));
 
@@ -186,7 +190,7 @@ export default function UserDashboard() {
 
       const data = await response.json();
       if (response.ok) {
-        alert("Application submitted successfully!");
+        toast.success("Application submitted successfully!");
         setResumeFiles((prev) => ({ ...prev, [interviewId]: null }));
         // Refresh interviews to update the UI
         const interviewsRes = await fetch("http://localhost:8000/api/interview/get-all-interviews/", {
@@ -195,10 +199,10 @@ export default function UserDashboard() {
         const interviewData = await interviewsRes.json();
         if (interviewsRes.ok) setInterviews(interviewData);
       } else {
-        alert("Failed to apply: " + (data.error || JSON.stringify(data)));
+        toast.error("Failed to apply: " + (data.error || JSON.stringify(data)));
       }
     } catch (err) {
-      alert("Error applying to interview.");
+      toast.error("Error applying to interview.");
     } finally {
       setApplyingToInterview(prev => ({ ...prev, [interviewId]: false }));
     }
@@ -465,7 +469,7 @@ export default function UserDashboard() {
         </div>
 
         {/* Interviews Section */}
-        {viewerType !== "guest" && interviews.length > 0 && (
+        {viewerType == "owner" && interviews.length > 0 && (
           <div className="max-w-4xl w-full mt-12 space-y-6">
             <h2 className="text-xl font-semibold text-purple-300">Available Interviews</h2>
             {interviews.map((interview) => (
