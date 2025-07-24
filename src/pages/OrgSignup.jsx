@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/ui/header";
 import Footer from "../components/ui/footer";
 import { getAuthToken } from "../utils/handleToken";
+import ImageUploader from "../utils/ImageUploader";
 
 export default function OrgSignup() {
   const navigate = useNavigate();
@@ -140,15 +141,20 @@ export default function OrgSignup() {
               className="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400"
             />
 
-            <input
-              type="text"
-              name="photo"
-              placeholder="Photo URL"
-              value={formData.photo}
-              onChange={handleChange}
-              required
-              className="w-full p-3 rounded bg-gray-700 text-white placeholder-gray-400"
-            />
+            {/* ✅ Replaced Photo URL with ImageUploader */}
+            <div>
+              <label className="block text-sm mb-2">Organization Logo</label>
+              <ImageUploader
+                onUploadSuccess={(url) => setFormData((prev) => ({ ...prev, photo: url }))}
+              />
+              {formData.photo && (
+                <img
+                  src={formData.photo}
+                  alt="Organization Logo"
+                  className="w-24 h-24 mt-3 rounded-lg border border-gray-600"
+                />
+              )}
+            </div>
 
             <textarea
               name="Description"

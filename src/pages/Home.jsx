@@ -6,6 +6,8 @@ import { Play, ArrowRight, Star, Users, Trophy, Zap, MessageCircle, Brain, Targe
 import Header from '../components/ui/header';
 import Footer from '../components/ui/footer';
 import { getAuthToken } from '../utils/handleToken';
+import { toast} from 'react-toastify';
+
 
 const Home = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -26,7 +28,7 @@ const Home = () => {
           }
         })
         .catch(err => {
-          console.error("Redirect error:", err);
+          toast.error("Redirect error:", err);
           localStorage.removeItem("authToken");
         });
     }
