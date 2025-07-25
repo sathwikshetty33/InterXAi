@@ -19,7 +19,6 @@ import { getAuthToken } from "../utils/handleToken";
 const Leaderboard = () => {
   const { id: interviewId } = useParams(); // Get interview ID from URL
   const [leaderboardData, setLeaderboardData] = useState([]);
-  const [interviewHistory, setInterviewHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
@@ -52,8 +51,8 @@ const Leaderboard = () => {
 
       const data = await response.json();
       console.log(data);
-      setLeaderboardData(data.data || []);
-      setInterviewHistory(data.interview_history || []);
+      // Assuming the API returns an array of candidates directly
+      setLeaderboardData(Array.isArray(data) ? data : data.data || []);
       setLoading(false);
     } catch (err) {
       setError(err.message);
@@ -368,154 +367,153 @@ const Leaderboard = () => {
       </div>
 
       {/* Candidate Details Modal */}
-{showHistory && selectedCandidate && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div className="bg-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-700 shadow-2xl">
-      {/* Header */}
-      <div className="sticky top-0 bg-slate-800 px-6 py-4 flex justify-between items-center border-b border-slate-700">
-        <h3 className="text-lg font-semibold text-white">
-          Interview Details - {selectedCandidate.Application?.user?.username}
-        </h3>
-        <button
-          onClick={() => setShowHistory(false)}
-          className="text-slate-400 hover:text-white text-2xl font-bold"
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* Candidate Summary */}
-      <div className="p-6 space-y-6 text-slate-300">
-        <div className="bg-slate-800 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-4 border border-slate-700">
-          <div>
-            <p className="text-sm text-slate-400">Final Score</p>
-            <p className="text-xl font-bold text-blue-400">
-              {selectedCandidate.score?.toFixed(1) || "N/A"}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-400">Status</p>
-            <p className="mt-1">{getStatusBadge(selectedCandidate.status)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-400">Recommendation</p>
-            <p className="text-sm font-medium">
-              {selectedCandidate.recommendation || "N/A"}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-400">Duration</p>
-            <p className="text-sm font-medium">
-              {selectedCandidate.start_time && selectedCandidate.end_time
-                ? `${Math.round(
-                    (new Date(selectedCandidate.end_time) -
-                      new Date(selectedCandidate.start_time)) /
-                      (1000 * 60)
-                  )} min`
-                : "In Progress"}
-            </p>
-          </div>
-        </div>
-
-        {/* Feedback */}
-        {selectedCandidate.feedback && (
-          <div>
-            <h4 className="text-md font-semibold text-white mb-2">Overall Feedback</h4>
-            <div className="bg-blue-900/30 border-l-4 border-blue-400 p-4">
-              <p className="text-sm">{selectedCandidate.feedback}</p>
+      {showHistory && selectedCandidate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-700 shadow-2xl">
+            {/* Header */}
+            <div className="sticky top-0 bg-slate-800 px-6 py-4 flex justify-between items-center border-b border-slate-700">
+              <h3 className="text-lg font-semibold text-white">
+                Interview Details - {selectedCandidate.Application?.user?.username}
+              </h3>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="text-slate-400 hover:text-white text-2xl font-bold"
+              >
+                ✕
+              </button>
             </div>
-          </div>
-        )}
 
-        {/* Strengths */}
-        {selectedCandidate.strengths && (
-          <div>
-            <h4 className="text-md font-semibold text-white mb-2">Strengths</h4>
-            <div className="bg-green-900/30 border-l-4 border-green-400 p-4">
-              <p className="text-sm">{selectedCandidate.strengths}</p>
-            </div>
-          </div>
-        )}
+            {/* Candidate Summary */}
+            <div className="p-6 space-y-6 text-slate-300">
+              <div className="bg-slate-800 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-4 border border-slate-700">
+                <div>
+                  <p className="text-sm text-slate-400">Final Score</p>
+                  <p className="text-xl font-bold text-blue-400">
+                    {selectedCandidate.score?.toFixed(1) || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Status</p>
+                  <p className="mt-1">{getStatusBadge(selectedCandidate.status)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Recommendation</p>
+                  <p className="text-sm font-medium">
+                    {selectedCandidate.recommendation || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Duration</p>
+                  <p className="text-sm font-medium">
+                    {selectedCandidate.start_time && selectedCandidate.end_time
+                      ? `${Math.round(
+                          (new Date(selectedCandidate.end_time) -
+                            new Date(selectedCandidate.start_time)) /
+                            (1000 * 60)
+                        )} min`
+                      : "In Progress"}
+                  </p>
+                </div>
+              </div>
 
-        {/* Question-wise Performance */}
-        {interviewHistory && interviewHistory.length > 0 && (
-          <div>
-            <h4 className="text-md font-semibold text-white mb-4">Question-wise Performance</h4>
-            <div className="space-y-4">
-              {interviewHistory.map((item, index) => (
-                <div key={index} className="border border-slate-700 rounded-lg p-4 bg-slate-800">
-                  <div className="flex justify-between items-start mb-3">
-                    <h5 className="font-medium text-white">
-                      Question {index + 1}
-                    </h5>
-                    {item.individual_score && (
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${getScoreColor(
-                          item.individual_score
-                        )}`}
-                      >
-                        {item.individual_score.toFixed(1)}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-purple-300">Main Question:</p>
-                      <p className="text-sm text-slate-300 bg-slate-900 p-2 rounded">
-                        {item.main_question}
-                      </p>
-                    </div>
-
-                    {item.expected_answer && (
-                      <div>
-                        <p className="text-sm font-medium text-purple-300">Expected Answer:</p>
-                        <p className="text-sm text-slate-300 bg-slate-900 p-2 rounded">
-                          {item.expected_answer}
-                        </p>
-                      </div>
-                    )}
-
-                    {item.conversation_history && item.conversation_history.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium text-purple-300 mb-2">
-                          Follow-up Questions:
-                        </p>
-                        <div className="space-y-2">
-                          {item.conversation_history.map((qa, qaIndex) => (
-                            <div key={qaIndex} className="bg-slate-900 p-3 rounded">
-                              <p className="text-sm font-medium text-blue-400">
-                                Q: {qa.question}
-                              </p>
-                              <p className="text-sm text-slate-300 mt-1">
-                                A: {qa.answer}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {item.individual_feedback && (
-                      <div>
-                        <p className="text-sm font-medium text-purple-300">Feedback:</p>
-                        <p className="text-sm text-slate-300 bg-yellow-900/30 p-2 rounded">
-                          {item.individual_feedback}
-                        </p>
-                      </div>
-                    )}
+              {/* Feedback */}
+              {selectedCandidate.feedback && (
+                <div>
+                  <h4 className="text-md font-semibold text-white mb-2">Overall Feedback</h4>
+                  <div className="bg-blue-900/30 border-l-4 border-blue-400 p-4">
+                    <p className="text-sm">{selectedCandidate.feedback}</p>
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Strengths */}
+              {selectedCandidate.strengths && (
+                <div>
+                  <h4 className="text-md font-semibold text-white mb-2">Strengths</h4>
+                  <div className="bg-green-900/30 border-l-4 border-green-400 p-4">
+                    <p className="text-sm">{selectedCandidate.strengths}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Question-wise Performance */}
+              {selectedCandidate.session && selectedCandidate.session.length > 0 && (
+                <div>
+                  <h4 className="text-md font-semibold text-white mb-4">Question-wise Performance</h4>
+                  <div className="space-y-4">
+                    {selectedCandidate.session.map((item, index) => (
+                      <div key={index} className="border border-slate-700 rounded-lg p-4 bg-slate-800">
+                        <div className="flex justify-between items-start mb-3">
+                          <h5 className="font-medium text-white">
+                            Question {index + 1}
+                          </h5>
+                          {item.score && (
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${getScoreColor(
+                                item.score
+                              )}`}
+                            >
+                              {item.score.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-sm font-medium text-purple-300">Main Question:</p>
+                            <p className="text-sm text-slate-300 bg-slate-900 p-2 rounded">
+                              {item.Customquestion?.question}
+                            </p>
+                          </div>
+
+                          {item.Customquestion?.answer && (
+                            <div>
+                              <p className="text-sm font-medium text-purple-300">Expected Answer:</p>
+                              <p className="text-sm text-slate-300 bg-slate-900 p-2 rounded">
+                                {item.Customquestion.answer}
+                              </p>
+                            </div>
+                          )}
+
+                          {item.followups && item.followups.length > 0 && (
+                            <div>
+                              <p className="text-sm font-medium text-purple-300 mb-2">
+                                Follow-up Questions:
+                              </p>
+                              <div className="space-y-2">
+                                {item.followups.map((qa, qaIndex) => (
+                                  <div key={qaIndex} className="bg-slate-900 p-3 rounded">
+                                    <p className="text-sm font-medium text-blue-400">
+                                      Q: {qa.question}
+                                    </p>
+                                    <p className="text-sm text-slate-300 mt-1">
+                                      A: {qa.answer}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {item.feedback && (
+                            <div>
+                              <p className="text-sm font-medium text-purple-300">Feedback:</p>
+                              <p className="text-sm text-slate-300 bg-yellow-900/30 p-2 rounded">
+                                {item.feedback}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
 
-      
       <Footer />
     </div>
   );

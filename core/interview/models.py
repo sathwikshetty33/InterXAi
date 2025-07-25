@@ -70,7 +70,7 @@ class InterviewSession(models.Model):
         return f'{self.Application.user.username}-{self.start_time}'
     
 class Interaction(models.Model):
-    session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE)
+    session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE,related_name="session")
     Customquestion = models.ForeignKey(Customquestion, on_delete=models.CASCADE)
     score = models.FloatField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -78,7 +78,7 @@ class Interaction(models.Model):
     def __str__(self):
         return f'{self.session.Application.user.username}-{self.Customquestion.question[:50]}...'
 class FollowUpQuestions(models.Model):
-    Interaction = models.ForeignKey(Interaction, on_delete=models.CASCADE)
+    Interaction = models.ForeignKey(Interaction, on_delete=models.CASCADE,related_name="interaction")
     question = models.TextField()
     answer = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

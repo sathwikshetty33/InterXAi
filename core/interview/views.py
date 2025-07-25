@@ -435,50 +435,14 @@ class LeaderBoardView(APIView):
 
         application = Application.objects.filter(interview=interview)
         session = InterviewSession.objects.filter(Application__in=application)
-        serializer = LeaderBoardSerializer(session, many=True)
-
         try:
-            # Get all interactions for these sessions
-            interactions = Interaction.objects.filter(session__in=session).order_by('created_at')
-            
-            if not interactions.exists():
-                return Response({"data": serializer.data, "interview_history": "None"}, status=status.HTTP_200_OK)
-            
-            # Build comprehensive interview history
-            interview_history = []
-            
-            for interaction in interactions:
-                question_data = {
-                    "main_question": interaction.Customquestion.question,
-                    "expected_answer": interaction.Customquestion.answer,
-                    "conversation_history": [],
-                    "individual_score": interaction.score,
-                    "individual_feedback": interaction.feedback
-                }
-                
-                # Fetch follow-up questions and answers for this interaction
-                follow_up_questions = FollowUpQuestions.objects.filter(Interaction=interaction).order_by('created_at')
-                
-                for follow_up in follow_up_questions:
-                    qa_pair = {
-                        "question": follow_up.question,
-                        "answer": follow_up.answer if follow_up.answer else "No answer provided"
-                    }
-                    question_data["conversation_history"].append(qa_pair)
-                
-                interview_history.append(question_data)
-                
-            return Response({
-                "data": serializer.data, 
-                "interview_history": interview_history
-            }, status=status.HTTP_200_OK)
+            serializer = LeaderBoardSerializer(session, many=True)          
+                    
+            return Response(serializer.data, status=status.HTTP_200_OK)
             
         except Exception as e:
-            return Response({
-                "data": serializer.data, 
-                "interview_history": "None",
-                "error": str(e)
-            }, status=status.HTTP_200_OK)
+            return Response({serializer.data, 
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CheatingDetection(APIView):
