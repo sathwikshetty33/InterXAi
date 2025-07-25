@@ -2,7 +2,6 @@ from rest_framework import serializers
 from .models import *
 
 
-
 class CustomQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customquestion
@@ -208,7 +207,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "feedback"
         ]
 
-
     def create(self, validated_data):
         return Application.objects.create(**validated_data)
     
@@ -218,31 +216,37 @@ class ApplicationSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class FollowUpSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FollowUpQuestions
+        fields = ["question","answer"]  # Fixed typo: was "fileds"
+
+class InteractionSerializer(serializers.ModelSerializer):
+    Customquestion = CustomQuestionSerializer()  # Fixed: was "CustomQuestion"
+    followups = FollowUpSerializer(many=True, source='interaction')
+    
+    class Meta:
+        model = Interaction
+        fields = ["Customquestion","followups", "score","feedback"]  # Fixed field name
+
 class LeaderBoardSerializer(serializers.ModelSerializer):
     Application = ApplicationSerializer(read_only=True)
     user = UserSerializer(read_only=True)
+    session = InteractionSerializer(many=True)  # Fixed: should be many=True for related_name="session"
+    
     class Meta:
         model = InterviewSession
         fields = [
-        "id",
-        "start_time",
-        "end_time",
-        "status",
-        "feedback",
-        "score",
-        "recommendation",
-        "strengths",
-        "Application",
-        "user"
+            "id",
+            "start_time",
+            "end_time",
+            "status",
+            "feedback",
+            "score",
+            "recommendation",
+            "strengths",
+            "Application",
+            "user",
+            "session",
         ]
-        def to_representation(self, instance):
-            data = super().to_representation(instance)
-            
-            # Keep only specific fields from Application
-            if 'Application' in data and data['Application']:
-                filtered_application = {
-                    "id": data['Application']['id'],
-                }
-                data['Application'] = filtered_application
-                
-            return data
+    
