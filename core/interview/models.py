@@ -77,6 +77,13 @@ class Interaction(models.Model):
     feedback = models.TextField(blank=True, null=True)
     def __str__(self):
         return f'{self.session.Application.user.username}-{self.Customquestion.question[:50]}...'
+class DSAInteractions(models.Model):
+    session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE, related_name="dsa_sessions", blank=True, null=True)
+    topic = models.ForeignKey(DsaTopics, on_delete=models.CASCADE, related_name="dsa_topics",blank=True, null=True)
+    question = models.TextField(blank=True, null=True)
+    code = models.TextField(blank=True, null=True)
+    score = models.FloatField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 class FollowUpQuestions(models.Model):
     Interaction = models.ForeignKey(Interaction, on_delete=models.CASCADE,related_name="interaction")
     question = models.TextField()

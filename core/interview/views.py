@@ -459,3 +459,43 @@ class CheatingDetection(APIView):
             return Response({"message": "Session marked as cheated"}, status=status.HTTP_200_OK)
         except InterviewSession.DoesNotExist:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class SessionDsaQuestions(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request, id):
+        try:
+            session = InterviewSession.objects.get(id=id)
+            interview = Custominterviews.objects.get(id=session.Application.interview.id)
+
+            dsa_questions = DSAInteractions.objects.filter(interaction__session__Application__interview=interview)
+            serializer = DSAQuestionsSerializer(dsa_questions, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Custominterviews.DoesNotExist:
+            return Response({"error": "Interview not found"}, status=status.HTTP_404_NOT_FOUND)
+    def post(self, request, id,dsa_id):
+        try:
+            session = InterviewSession.objects.get(id=id)
+        except InterviewSession.DoesNotExist:
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            dsa_topic = DsaTopics.objects.get(id=dsa_id)
+        except DsaTopics.DoesNotExist:
+            return Response({"error": "DSA Topic not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            dsa_interaction = DSAInteractions.objects.get(interaction__session=session, question=dsa_topic)
+            if dsa_interaction:
+                return Response({"error": "DSA interaction already exists for this session and topic"}, status=status.HTTP_400_BAD_REQUEST)
+        except DSAInteractions.DoesNotExist:
+            dsa_interaction = DSAInteractions.objects.create(
+                session=session,
+                topic=dsa_topic,
+                question=request.data.get("question", ""),
+                score=request.data.get("score"),
+                code=request.data.get("code"),
+        )
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "DSA interaction created", "id": dsa_interaction.id}, status=status.HTTP_201_CREATED)
