@@ -220,20 +220,26 @@ class FollowUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = FollowUpQuestions
         fields = ["question","answer"]  # Fixed typo: was "fileds"
+class DsaSessionSerializer(serializers.ModelSerializer):
+    topic = DsaTopicSerializer(read_only=True)
 
+    class Meta:
+        model = DSAInteractions
+        fields = ["id", "session", "topic", "question", "code", "score", "created_at"]
+        read_only_fields = ["id", "created_at"]
 class InteractionSerializer(serializers.ModelSerializer):
     Customquestion = CustomQuestionSerializer()  # Fixed: was "CustomQuestion"
     followups = FollowUpSerializer(many=True, source='interaction')
-    
     class Meta:
         model = Interaction
-        fields = ["Customquestion","followups", "score","feedback"]  # Fixed field name
+        fields = ["Customquestion","followups","score","feedback"]  # Fixed field name
 
 class LeaderBoardSerializer(serializers.ModelSerializer):
     Application = ApplicationSerializer(read_only=True)
     user = UserSerializer(read_only=True)
     session = InteractionSerializer(many=True)  # Fixed: should be many=True for related_name="session"
-    
+    dsa = DsaSessionSerializer(many=True, source='dsa_sessions')
+
     class Meta:
         model = InterviewSession
         fields = [
@@ -248,5 +254,10 @@ class LeaderBoardSerializer(serializers.ModelSerializer):
             "Application",
             "user",
             "session",
+            "dsa",
         ]
-    
+
+class DSAQuestionsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DsaTopics
+        fields = ["id","topic", "difficulty", "number_of_questions"]
