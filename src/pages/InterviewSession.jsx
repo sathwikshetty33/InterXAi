@@ -23,6 +23,8 @@ const InterviewSession = () => {
 
   const hasInitialized = useRef(false);
   const chatEndRef = useRef(null);
+  const [questionLoading, setQuestionLoading] = useState(false);
+
 
   // ✅ Auto-scroll to bottom
   useEffect(() => {
@@ -119,38 +121,38 @@ const InterviewSession = () => {
 
   // ✅ Submit answer
   const handleNext = async () => {
-    if (!answer.trim()) return;
+  if (!answer.trim()) return;
 
-    setChatHistory((prev) => [...prev, { question: currentQuestion, answer }]);
-    setAnswer("");
+  setChatHistory((prev) => [...prev, { question: currentQuestion, answer }]);
+  setAnswer("");
+  setQuestionLoading(true);   // ✅ Trigger loading state first
 
-    try {
-      const data = await fetchWithToken(
-        `http://localhost:8000/api/interview/interview-session/${sessionId}/?answer=${encodeURIComponent(
-          answer
-        )}`,
-        token,
-        null,
-        "POST"
-      );
+  try {
+    const data = await fetchWithToken(
+      `http://localhost:8000/api/interview/interview-session/${sessionId}/?answer=${encodeURIComponent(answer)}`,
+      token,
+      null,
+      "POST"
+    );
 
-      if (!data) {
-        setError("Error submitting answer.");
-        return;
-      }
-
-      // ✅ If interview completed (backend)
-      if (data.completed) {
-        console.log(data.completed);
-        setCompleted(true);
-        setCurrentQuestion(null);
-      } else {
-        setCurrentQuestion(data.current_question);
-      }
-    } catch (err) {
+    if (!data) {
       setError("Error submitting answer.");
+      return;
     }
-  };
+
+    if (data.completed) {
+      setCompleted(true);
+    } else {
+      setCurrentQuestion(data.current_question);
+    }
+  } catch (err) {
+    setError("Error submitting answer.");
+  } finally {
+    setQuestionLoading(false); // ✅ Stop loader once everything is ready
+  }
+};
+
+
 
   const handleStartInterview = () => setShowWelcome(false);
 
@@ -285,7 +287,13 @@ const InterviewSession = () => {
         {/* Question Section */}
         <div className="flex-1 flex flex-col">
           <div className="flex-1 p-6 flex items-center justify-center">
-            {currentQuestion && (
+            {questionLoading ? (
+  <div className="flex justify-center items-center h-60">
+    <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
+    <p className="ml-4 text-slate-300 text-lg">Evaluating your response...</p>
+  </div>
+) : currentQuestion && (
+
               <div className="max-w-3xl w-full">
                 <div className="bg-slate-800/60 p-8 rounded-2xl border border-slate-700/50 shadow-2xl">
                   <div className="flex items-center gap-3 mb-6">

@@ -211,11 +211,21 @@ export default function UserDashboard() {
   const renderInterviewActions = (interview) => {
     const hasApplied = interview.has_applied || false;
     const applicationStatus = interview.application_status || false;
+    const hasAttempted = interview.attempted || false;
     const interviewId = interview.id;
 
     if (hasApplied) {
       if (applicationStatus) {
         // Application approved - show start interview button
+        if (hasAttempted) {
+        // Already attempted the interview
+        return (
+          <div className="mt-2 flex items-center gap-2 text-green-400">
+            <CheckCircle className="w-4 h-4" />
+            <p>Your result will be announced soon.</p>
+          </div>
+        );
+      } else {
         return (
           <button
             onClick={() => navigate(`/interview/start/${interviewId}`)}
@@ -225,6 +235,7 @@ export default function UserDashboard() {
             Start Interview
           </button>
         );
+      }
       } else {
         // Application under review
         return (
