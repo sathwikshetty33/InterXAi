@@ -12,6 +12,7 @@ import Application from '../pages/Application';
 import InterviewSession from "../pages/InterviewSession";
 import Leaderboard from '../pages/Leaderboard';
 
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -28,6 +29,7 @@ export default function AppRoutes() {
       <Route path="/applications/:id" element={<Application />} />
       <Route path="/interview/start/:interviewId" element={<InterviewSession />} />
       <Route path="/leaderboard/:id" element={<Leaderboard />} />
+      
 
       
 

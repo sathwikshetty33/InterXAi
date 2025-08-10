@@ -99,9 +99,12 @@ export default function Application() {
       certifications: [],
     };
   
-    const lines = resumeText.split('\n').map(line => line.trim()).filter(Boolean);
+    // Handle both \n and \r\n line endings from API
+    const lines = resumeText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     let currentSection = null;
     let currentExperienceItem = null;
+    let currentEducationItem = null;
+    let currentProjectText = "";
   
     // Helper function to finalize current experience item
     const finalizeExperienceItem = () => {
@@ -111,10 +114,28 @@ export default function Application() {
       }
     };
   
+    // Helper function to finalize current education item  
+    const finalizeEducationItem = () => {
+      if (currentEducationItem && currentSection === "education") {
+        sections.education.push(currentEducationItem);
+        currentEducationItem = null;
+      }
+    };
+  
+    // Helper function to finalize current project
+    const finalizeProjectItem = () => {
+      if (currentSection === "projects" && currentProjectText.trim()) {
+        sections.projects.push(currentProjectText.trim());
+        currentProjectText = "";
+      }
+    };
+  
     lines.forEach((line, index) => {
       if (line.startsWith("###")) {
-        // Finalize current experience item before switching sections
+        // Finalize current items before switching sections
         finalizeExperienceItem();
+        finalizeEducationItem();
+        finalizeProjectItem();
         
         const sectionTitle = line.replace("###", "").trim().toLowerCase();
         if (sectionTitle.includes("personal")) currentSection = "personalInfo";
@@ -126,8 +147,10 @@ export default function Application() {
         else if (sectionTitle.includes("projects")) currentSection = "projects";
         else if (sectionTitle.includes("achievements")) currentSection = "achievements";
         
-        // Reset current experience item when switching sections
+        // Reset current items when switching sections
         currentExperienceItem = null;
+        currentEducationItem = null;
+        currentProjectText = "";
       } else if (currentSection) {
         if (currentSection === "personalInfo") {
           if (line.includes("Name:")) sections.personalInfo.name = line.replace("Name:", "").trim();
@@ -140,11 +163,16 @@ export default function Application() {
           if (!line.startsWith("-")) {
             sections.summary += line + " ";
           }
+        } else if (currentSection === "skills") {
+          if (line.startsWith("-")) {
+            const cleanLine = line.replace("-", "").trim();
+            sections.skills.push(cleanLine);
+          }
         } else if (currentSection === "experience") {
           if (line.startsWith("-")) {
             const cleanLine = line.replace("-", "").trim();
             
-            // Check if this looks like a company/position line (contains company name patterns)
+            // Check if this looks like a new experience entry (company/position line)
             if (isCompanyPositionLine(cleanLine)) {
               // If we have a previous experience item, push it to the array
               if (currentExperienceItem) {
@@ -171,46 +199,99 @@ export default function Application() {
               }
             }
           }
-        } else if (line.startsWith("-")) {
-          const cleanLine = line.replace("-", "").trim();
+        } else if (currentSection === "education") {
+          if (line.startsWith("-")) {
+            const cleanLine = line.replace("-", "").trim();
+            
+            // Check if this looks like a new education entry
+            if (isEducationMainLine(cleanLine)) {
+              // If we have a previous education item, push it to the array
+              if (currentEducationItem) {
+                sections.education.push(currentEducationItem);
+              }
+              
+              // Create new education item
+              currentEducationItem = parseEducationItem(cleanLine);
+              currentEducationItem.details = [];
+            } else {
+              // This is additional info (like CGPA, percentage, etc.)
+              if (currentEducationItem) {
+                // Check if it's CGPA or percentage info
+                if (cleanLine.includes("CGPA:") || cleanLine.includes("Percentage:")) {
+                  if (cleanLine.includes("CGPA:")) {
+                    currentEducationItem.cgpa = cleanLine.replace("CGPA:", "").trim();
+                  } else if (cleanLine.includes("Percentage:")) {
+                    currentEducationItem.percentage = cleanLine.replace("Percentage:", "").trim();
+                  }
+                } else {
+                  currentEducationItem.details.push(cleanLine);
+                }
+              } else {
+                // If no current item, create a simple one
+                currentEducationItem = {
+                  title: cleanLine,
+                  organization: "",
+                  location: "",
+                  period: "",
+                  cgpa: "",
+                  percentage: "",
+                  details: [],
+                  raw: cleanLine
+                };
+              }
+            }
+          }
+        } else if (currentSection === "projects") {
+        if (line.startsWith("-")) {
+          const cleanLine = line.replace(/^-\s*/, "");
           
-          if (currentSection === "education") {
-            const item = parseStructuredItem(cleanLine);
-            sections[currentSection].push(item);
+          // FIXED: Check if this is a main project line
+          if (isMainProjectLine(cleanLine)) {
+            // If we have accumulated project text, save it as a separate project
+            if (currentProjectText.trim()) {
+              sections.projects.push(currentProjectText.trim());
+            }
+            // Start new project
+            currentProjectText = cleanLine;
           } else {
+            // This is a description line, add it to current project
+            if (currentProjectText) {
+              currentProjectText += "\n - " + cleanLine;
+            } else {
+              // Fallback: treat as standalone project
+              currentProjectText = cleanLine;
+            }
+          }
+        }
+      } else if (currentSection === "achievements" || currentSection === "certifications") {
+          if (line.startsWith("-")) {
+            const cleanLine = line.replace("-", "").trim();
             sections[currentSection].push(cleanLine);
           }
         }
       }
     });
   
-    // Don't forget to push the last experience item if it exists
+    // Don't forget to push the last items
     finalizeExperienceItem();
+    finalizeEducationItem();
+    finalizeProjectItem();
   
     return sections;
   };
   
+  
   // Helper function to detect if a line is a company/position line
   const isCompanyPositionLine = (line) => {
-    // More comprehensive patterns that indicate this is a company/position line
     const companyPatterns = [
-      // Job titles
-      /\b(intern|associate|developer|engineer|manager|analyst|coordinator|specialist|assistant|director|lead|senior|junior|consultant|administrator|executive|supervisor|technician|designer|architect|programmer|scientist|researcher|officer|representative|agent|advisor|instructor|trainer|mentor)\b/i,
-      
-      // Company indicators
-      /\b(at|@)\s+[A-Z]/,  // "at Company" or "@ Company"
-      /\b(inc|llc|ltd|corp|corporation|company|co\.|pvt|private|limited|group|international|solutions|systems|software|services|technologies|tech|consulting|consultancy)\b/i,
-      
-      // Date patterns
-      /\(\s*\d{4}\s*[-–]\s*(\d{4}|present|current)\s*\)/i,  // Date patterns in parentheses
+      /\b(intern|associate|developer|engineer|manager|analyst|coordinator|specialist|assistant|director|lead|senior|junior|consultant|administrator|executive|supervisor|technician|designer|architect|programmer|scientist|researcher|officer|representative|agent|advisor|instructor|trainer|mentor|co-founder|founder|tutor)\b/i,
+      /\b(at|@)\s+[A-Z]/,
+      /\b(inc|llc|ltd|corp|corporation|company|co\.|pvt|private|limited|group|international|solutions|systems|software|services|technologies|tech|consulting|consultancy|club|academy|institute)\b/i,
+      /\(\s*\d{4}\s*[-–]\s*(\d{4}|present|current)\s*\)/i,
       /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}/i,
       /\d{4}\s*[-–]\s*(\d{4}|present|current)/i,
-      
-      // Position with company pattern
-      /^[A-Z][a-z\s]+\s+[-–]\s+[A-Z]/,  // "Software Engineer - Google"
-      /^[A-Z][a-z\s]+\s+at\s+[A-Z]/,    // "Software Engineer at Google"
-      
-      // Common company types
+      /^[A-Z][a-z\s]+\s+[-–]\s+[A-Z]/,
+      /^[A-Z][a-z\s]+\s+at\s+[A-Z]/,
       /\b(startup|enterprise|firm|agency|organization|institution|foundation|university|college|school|hospital|clinic|bank|financial|retail|manufacturing|pharmaceutical|biotechnology|telecommunications|aerospace|automotive|energy|utilities|government|nonprofit|ngo)\b/i
     ];
     
@@ -223,28 +304,18 @@ export default function Application() {
       organization: "",
       location: "",
       period: "",
-      gpa: "",
       details: [],
       raw: text
     };
   
-    // Enhanced parsing patterns
     const patterns = {
-      // Experience patterns - handle multiple formats
       positionAt: /^(.+?)\s+(?:at|@)\s+(.+?)(?:\s+\((.+?)\))?(?:\s+[-–]\s+(.+?))?$/i,
       companyPosition: /^(.+?)\s+[-–]\s+(.+?)(?:\s+\((.+?)\))?(?:\s+[-–]\s+(.+?))?$/i,
-      
-      // Education patterns
-      degree: /(.+?)\s+(?:at|from)\s+(.+?)(?:\s+\((.+?)\))?(?:\s+[-–]\s+(.+?))?/i,
-      
-      // Common patterns
-      gpa: /GPA:\s*(\d+\.?\d*)/i,
       period: /(\d{4})\s*[-–]\s*(\d{4}|present|current)/i,
       location: /,\s*([^,]+(?:,\s*[A-Z]{2})?)\s*$/i,
       dateInParens: /\(\s*(.+?)\s*\)/,
     };
   
-    // Try to parse position/company format
     let match = text.match(patterns.positionAt);
     if (match) {
       item.title = match[1]?.trim() || "";
@@ -252,26 +323,15 @@ export default function Application() {
       item.location = match[3]?.trim() || "";
       item.period = match[4]?.trim() || "";
     } else {
-      // Try company-position format
       match = text.match(patterns.companyPosition);
       if (match) {
         item.organization = match[1]?.trim() || "";
         item.title = match[2]?.trim() || "";
         item.location = match[3]?.trim() || "";
         item.period = match[4]?.trim() || "";
-      } else {
-        // Try education format
-        match = text.match(patterns.degree);
-        if (match) {
-          item.title = match[1]?.trim() || "";
-          item.organization = match[2]?.trim() || "";
-          item.location = match[3]?.trim() || "";
-          item.period = match[4]?.trim() || "";
-        }
       }
     }
   
-    // Extract dates from parentheses if not found above
     if (!item.period) {
       const dateMatch = text.match(patterns.dateInParens);
       if (dateMatch) {
@@ -282,21 +342,6 @@ export default function Application() {
       }
     }
   
-    // Extract GPA
-    const gpaMatch = text.match(patterns.gpa);
-    if (gpaMatch) {
-      item.gpa = gpaMatch[1];
-    }
-  
-    // Extract location if not found above
-    if (!item.location) {
-      const locationMatch = text.match(patterns.location);
-      if (locationMatch) {
-        item.location = locationMatch[1];
-      }
-    }
-  
-    // If no structured data found, use the raw text as title
     if (!item.title && !item.organization) {
       item.title = text;
     }
@@ -488,6 +533,86 @@ export default function Application() {
     </div>
   );
 
+  const isMainProjectLine = (line) => {
+  const mainProjectPatterns = [
+    /^\*\*.*\*\*:/, // **ProjectName**: pattern
+    /\|\s*[A-Za-z]/, // Contains | followed by tech stack
+    /\(GitHub\)/i, // Contains GitHub indicator
+    /\(\d{4}\)/, // Contains year in parentheses
+    /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}/i,
+    /\d{4}\s*[-–]\s*(\d{4}|present|current)/i,
+    /^[A-Z][a-z\s]+\s+[-–]\s+[A-Z]/,
+    /^[A-Z][a-z\s]+\s+\|\s+[A-Z]/,
+    // Pattern for projects that start with **Name**
+    /^\*\*[^*]+\*\*/,
+  ];
+  
+  return mainProjectPatterns.some(pattern => pattern.test(line));
+};
+
+  const isEducationMainLine = (line) => {
+    const educationPatterns = [
+      /\b(b\.e\.|b\.tech|bachelor|master|m\.tech|m\.s\.|diploma|degree|engineering|science|arts|commerce|management|phd|doctorate)\b/i,
+      /\b(university|college|school|institute|academy)\b/i,
+      /\b(board|cbse|icse|state board|kseeb)\b/i,
+      /\d{4}\s*[-–]\s*\d{4}/i, // Year range
+    ];
+    
+    return educationPatterns.some(pattern => pattern.test(line));
+  };
+  
+  const parseEducationItem = (text) => {
+    const item = {
+      title: "",
+      organization: "",
+      location: "",
+      period: "",
+      cgpa: "",
+      percentage: "",
+      details: [],
+      raw: text
+    };
+  
+    // Enhanced parsing patterns for education
+    const patterns = {
+      // Education patterns - handle multiple formats
+      degreeAt: /^(.+?)\s+[-–]\s+(.+?)(?:\s*,\s*(.+?))?(?:\s+\((.+?)\))?$/i,
+      boardSchool: /^(.+?)\s+[-–]\s+(.+?)(?:\s*,\s*(.+?))?(?:\s+\((.+?)\))?$/i,
+      
+      // Common patterns
+      period: /(\d{4})\s*[-–]\s*(\d{4})/i,
+      location: /,\s*([^,]+(?:,\s*[A-Z]{2})?)\s*$/i,
+      dateInParens: /\(\s*(.+?)\s*\)/,
+    };
+  
+    // Try to parse degree/institution format
+    let match = text.match(patterns.degreeAt);
+    if (match) {
+      item.title = match[1]?.trim() || "";
+      item.organization = match[2]?.trim() || "";
+      item.location = match[3]?.trim() || "";
+      item.period = match[4]?.trim() || "";
+    }
+  
+    // Extract dates from parentheses if not found above
+    if (!item.period) {
+      const dateMatch = text.match(patterns.dateInParens);
+      if (dateMatch) {
+        const dateContent = dateMatch[1];
+        if (patterns.period.test(dateContent)) {
+          item.period = dateContent;
+        }
+      }
+    }
+  
+    // If no structured data found, use the raw text as title
+    if (!item.title && !item.organization) {
+      item.title = text;
+    }
+  
+    return item;
+  };
+
   const renderEducation = (education) => (
     <div className="space-y-6">
       {education.map((edu, index) => (
@@ -523,19 +648,35 @@ export default function Application() {
                       <span className="text-sm">{edu.period}</span>
                     </div>
                   )}
-                  {edu.gpa && (
-                    <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 px-3 py-1.5 rounded-lg border border-yellow-500/30">
-                      <div className="flex items-center gap-2">
-                        <Trophy size={16} className="text-yellow-400" />
-                        <span className="text-yellow-300 font-semibold text-sm">
-                          GPA: {edu.gpa}
-                        </span>
+                  
+                  {/* Display CGPA or Percentage */}
+                  <div className="flex gap-2">
+                    {edu.cgpa && (
+                      <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 px-3 py-1.5 rounded-lg border border-yellow-500/30">
+                        <div className="flex items-center gap-2">
+                          <Trophy size={16} className="text-yellow-400" />
+                          <span className="text-yellow-300 font-semibold text-sm">
+                            CGPA: {edu.cgpa}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                    
+                    {edu.percentage && (
+                      <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30">
+                        <div className="flex items-center gap-2">
+                          <Star size={16} className="text-blue-400" />
+                          <span className="text-blue-300 font-semibold text-sm">
+                            {edu.percentage}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               
+              {/* Additional Details */}
               {edu.details && edu.details.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {edu.details.map((detail, idx) => (
@@ -553,46 +694,157 @@ export default function Application() {
     </div>
   );
 
+  const parseProjectName = (projectText) => {
+  if (!projectText) return 'Unnamed Project';
+  
+  const firstLine = projectText.split('\n')[0];
+  
+  // Try different patterns to extract project name
+  
+  // Pattern 1: ProjectName (GitHub) | Tech Stack (Year)
+  let match = firstLine.match(/^(.+?)\s*\(GitHub\)/);
+  if (match) {
+    return match[1].trim();
+  }
+  
+  // Pattern 2: ProjectName | Tech Stack (Year)
+  match = firstLine.match(/^(.+?)\s*\|/);
+  if (match) {
+    return match[1].trim();
+  }
+  
+  // Pattern 3: ProjectName - Description
+  match = firstLine.match(/^(.+?)\s*[-–]/);
+  if (match) {
+    return match[1].trim();
+  }
+  
+  // Pattern 4: Just take the first part before any special characters
+  match = firstLine.match(/^([^|\-–(]+)/);
+  if (match) {
+    return match[1].trim();
+  }
+  
+  // Fallback: return the first line trimmed
+  return firstLine.trim();
+};
+
   const renderProjects = (projects) => (
-    <div className="space-y-6">
-      {projects.map((project, index) => (
+  <div className="space-y-6">
+    {projects.map((project, index) => {
+      // Parse project data using enhanced logic
+      const lines = typeof project === 'string' ? project.split('\n').filter(line => line.trim()) : [];
+      const firstLine = lines[0] || (typeof project === 'string' ? project : project.title || project.raw || '');
+      
+      // Use the enhanced parseProjectName function
+      const projectName = parseProjectName(firstLine);
+      
+      // Extract tech stack and year - handle different formats
+      let techStack = [];
+      let year = new Date().getFullYear();
+      
+      // Try to extract tech stack from various patterns
+      let projectMatch = firstLine.match(/\|\s*(.+?)\s*\((\d{4})\)/);
+      if (projectMatch) {
+        techStack = projectMatch[1].split(',').map(t => t.trim());
+        year = projectMatch[2];
+      } else {
+        // Try pattern without year
+        projectMatch = firstLine.match(/\|\s*(.+?)$/);
+        if (projectMatch) {
+          techStack = projectMatch[1].split(',').map(t => t.trim());
+        } else {
+          // Extract from description if available
+          const description = lines.join(' ');
+          const techMatch = description.match(/(?:built with|using|technologies?:?)\s*([^.]+)/i);
+          if (techMatch) {
+            techStack = techMatch[1].split(/[,\s]+/).filter(tech => tech.length > 2);
+          }
+        }
+      }
+      
+      // Extract description lines (lines starting with spaces or dashes after first line)
+      const descriptionLines = lines.slice(1).filter(line => line.trim().startsWith('-') || line.trim().match(/^\s/));
+
+      return (
         <div key={index} className="bg-gradient-to-r from-slate-900/80 to-slate-800/80 p-6 rounded-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-200 group">
           <div className="flex items-start gap-4">
             <div className="bg-purple-600/20 p-3 rounded-xl flex-shrink-0">
               <Code size={20} className="text-purple-400" />
             </div>
             <div className="flex-1">
-              <h4 className="text-xl font-bold text-white group-hover:text-purple-200 transition-colors mb-2">
-                {project.title || project.raw || project}
-              </h4>
-              {project.organization && (
-                <div className="flex items-center gap-2 text-slate-300 mb-2">
-                  <Building size={16} className="text-slate-400" />
-                  <span className="font-medium">{project.organization}</span>
-                </div>
-              )}
-              {project.period && (
-                <div className="flex items-center gap-2 text-slate-400 mb-3">
-                  <Calendar size={16} />
-                  <span className="text-sm">{project.period}</span>
-                </div>
-              )}
-              {project.details && project.details.length > 0 && (
-                <div className="space-y-2">
-                  {project.details.map((detail, idx) => (
-                    <div key={idx} className="flex items-start gap-2">
-                      <div className="bg-purple-600/20 w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0"></div>
-                      <p className="text-slate-300 text-sm leading-relaxed">{detail}</p>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3">
+                <div className="flex items-center gap-3 mb-2">
+                  <h4 className="text-xl font-bold text-white group-hover:text-purple-200 transition-colors">
+                    {projectName} {/* Now uses enhanced parsing */}
+                  </h4>
+                  <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-slate-700/50 to-slate-600/50 rounded-full border border-slate-500/30">
+                    <svg className="w-3 h-3 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    <span className="text-slate-400 text-xs">GitHub</span>
+                  </div>
+                  {year !== new Date().getFullYear() && (
+                    <div className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-md border border-purple-500/30">
+                      {year}
                     </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Tech Stack */}
+              {techStack.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {techStack.slice(0, 8).map((tech, techIndex) => (
+                    <span key={techIndex} className="px-3 py-1 bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 text-xs rounded-lg border border-cyan-500/30 hover:border-cyan-400/50 hover:from-cyan-500/30 hover:to-cyan-600/30 transition-all duration-200 font-medium">
+                      {tech}
+                    </span>
                   ))}
+                  {techStack.length > 8 && (
+                    <span className="px-3 py-1 bg-slate-700/50 text-slate-400 text-xs rounded-lg border border-slate-600/30 font-medium">
+                      +{techStack.length - 8} more
+                    </span>
+                  )}
                 </div>
               )}
+
+              {/* Project Description */}
+              <div className="relative bg-slate-800/20 rounded-lg p-4 border border-slate-600/20 group-hover:border-purple-400/30 group-hover:bg-slate-800/30 transition-all duration-300">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-400 to-purple-600 rounded-r-full opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="pl-4">
+                  {descriptionLines.length > 0 ? (
+                    <div className="space-y-3">
+                      {descriptionLines.slice(0, 5).map((desc, descIndex) => (
+                        <div key={descIndex} className="flex items-start gap-3">
+                          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full mt-2 flex-shrink-0 group-hover:bg-purple-300 transition-colors duration-300"></div>
+                          <p className="text-slate-300 text-sm leading-relaxed group-hover:text-slate-200 transition-colors duration-300">
+                            {desc.replace(/^[-\s]+/, '').trim()}
+                          </p>
+                        </div>
+                      ))}
+                      {descriptionLines.length > 5 && (
+                        <div className="flex items-center gap-3 pt-2 border-t border-slate-600/20">
+                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
+                          <span className="text-slate-400 text-xs font-medium">
+                            +{descriptionLines.length - 5} additional features
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-slate-300 text-sm leading-relaxed group-hover:text-slate-200 transition-colors duration-300 pl-4">
+                      {project.replace(/^[-\s]*/, '').trim()}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      ))}
-    </div>
-  );
+      );
+    })}
+  </div>
+);
 
   const renderAchievements = (achievements) => (
     <div className="grid sm:grid-cols-2 gap-4">
