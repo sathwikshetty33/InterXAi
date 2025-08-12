@@ -14,5 +14,7 @@ urlpatterns = [
     path('interview-session-initializer/<int:id>/', views.InterviewSessionInitializerView.as_view(), name='interview_session_initializer'),
     path('leaderboard/<int:id>/',views.LeaderBoardView.as_view(), name='leaderboard'),
     path('cheated/<int:id>/',views.CheatingDetection.as_view(),name="cheating_updater"),
-    path('get-dsa-questions/<int:id>/', views.SessionDsaQuestions.as_view(), name='get_dsa_questions')
+    path('get-dsa-questions/<int:id>/', views.SessionDsaQuestions.as_view(), name='get_dsa_questions'),
+    path('add-dsa-scores/<int:id>/<int:dsa_id>',views.SessionDsaQuestions.as_view(), name='add_dsa_scores'),
+
 ]
