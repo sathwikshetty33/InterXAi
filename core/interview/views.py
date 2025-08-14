@@ -469,7 +469,7 @@ class SessionDsaQuestions(APIView):
             session = InterviewSession.objects.get(id=id)
             interview = Custominterviews.objects.get(id=session.Application.interview.id)
 
-            dsa_questions = DSAInteractions.objects.filter(interaction__session__Application__interview=interview)
+            dsa_questions = DsaTopics.objects.filter(interview=interview)
             serializer = DSAQuestionsSerializer(dsa_questions, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -485,7 +485,7 @@ class SessionDsaQuestions(APIView):
         except DsaTopics.DoesNotExist:
             return Response({"error": "DSA Topic not found"}, status=status.HTTP_404_NOT_FOUND)
         try:
-            dsa_interaction = DSAInteractions.objects.get(interaction__session=session, question=dsa_topic)
+            dsa_interaction = DSAInteractions.objects.get(session=session, topic=dsa_topic)
             if dsa_interaction:
                 return Response({"error": "DSA interaction already exists for this session and topic"}, status=status.HTTP_400_BAD_REQUEST)
         except DSAInteractions.DoesNotExist:
