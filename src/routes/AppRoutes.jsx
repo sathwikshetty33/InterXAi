@@ -31,9 +31,7 @@ export default function AppRoutes() {
       <Route path="/leaderboard/:id" element={<Leaderboard />} />
       <Route path="/dsa-interview-platform/:sessionId" element={<DSAInterviewPlatform />} />
 
-      
-
-      
+    
 
       {/* Add more routes as needed */}
     
