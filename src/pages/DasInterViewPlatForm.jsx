@@ -94,13 +94,16 @@ const DSAInterviewPlatform = ({  navigate }) => {
       const data = await fetchWithToken(
         `http://localhost:8000/api/interview/get-dsa-questions/${sessionId}/`,
         token,
-        navigate
+        navigate,
       );
-      if (data) {
+      if (data.length===0) {
+        console.log('Fetched DSA topics:', data);
+        nav('/');
         return data;
       }
       return [];
     } catch (error) {
+      nav('/');
       console.error('Error fetching DSA topics:', error);
       setError('Failed to fetch DSA topics');
       return [];
