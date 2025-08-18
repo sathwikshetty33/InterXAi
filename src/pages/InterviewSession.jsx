@@ -112,12 +112,13 @@ const InterviewSession = () => {
   }, [endTime]);
 
   // ✅ Redirect to previous page after completion
-  useEffect(() => {
-    if (completed) {
-      const timeout = setTimeout(() => navigate(-1), 5000);
-      return () => clearTimeout(timeout);
-    }
-  }, [completed, navigate]);
+  // ✅ Redirect to DasInterViewPlatform after completion
+useEffect(() => {
+  if (completed && sessionId) {
+    navigate(`/dsa-interview-platform/${sessionId}`);
+  }
+}, [completed, sessionId, navigate]);
+
 
   // ✅ Submit answer
   const handleNext = async () => {
