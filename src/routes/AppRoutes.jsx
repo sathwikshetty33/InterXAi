@@ -12,11 +12,11 @@ import Application from '../pages/Application';
 import InterviewSession from "../pages/InterviewSession";
 import Leaderboard from '../pages/Leaderboard';
 import DSAInterviewPlatform from '../pages/DasInterViewPlatForm';
-
+import EnhancedProctoredRouteWrapper from "./ProtectorRouteWrapper";
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<Home />}/>
       <Route path="/about" element={<About />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
@@ -27,9 +27,24 @@ export default function AppRoutes() {
       <Route path="/interview/:id" element={<Interview />} />
       <Route path="/interview" element={<Interview />} />
       <Route path="/applications/:id" element={<Application />} />
-      <Route path="/interview/start/:interviewId" element={<InterviewSession />} />
       <Route path="/leaderboard/:id" element={<Leaderboard />} />
-      <Route path="/dsa-interview-platform/:sessionId" element={<DSAInterviewPlatform />} />
+  <Route 
+    path="/interview/start/:interviewId" 
+    element={
+      <EnhancedProctoredRouteWrapper>
+        <InterviewSession />
+      </EnhancedProctoredRouteWrapper>
+    } 
+  />
+  
+  <Route 
+    path="/dsa-interview-platform/:sessionId" 
+    element={
+      <EnhancedProctoredRouteWrapper>
+        <DSAInterviewPlatform />
+      </EnhancedProctoredRouteWrapper>
+    } 
+  />
 
     
 
