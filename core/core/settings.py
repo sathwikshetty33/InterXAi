@@ -32,8 +32,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['interxai.onrender.com']
-CSRF_TRUSTED_ORIGINS = ['http://*','https://*']
+ALLOWED_HOSTS = ["interxai.onrender.com"]
+CSRF_TRUSTED_ORIGINS = ['http://*','https://*',"https://interxai.onrender.com"]
 
 
 # Application definition
