@@ -471,6 +471,7 @@ class SessionDsaQuestions(APIView):
 
             dsa_questions = DsaTopics.objects.filter(interview=interview)
             serializer = DSAQuestionsSerializer(dsa_questions, many=True)
+            print(serializer.data)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Custominterviews.DoesNotExist:
