@@ -114,7 +114,9 @@ const InterviewSession = () => {
   // ✅ Redirect to previous page after completion
   // ✅ Redirect to DasInterViewPlatform after completion
 useEffect(() => {
+  console.log("no poskjqnwjwqn")
   if (completed && sessionId) {
+    console.log("eqv 2hbjqn2knw2qini23i")
     navigate(`/dsa-interview-platform/${sessionId}`);
   }
 }, [completed, sessionId, navigate]);

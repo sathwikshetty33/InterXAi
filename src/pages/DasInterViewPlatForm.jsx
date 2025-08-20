@@ -96,12 +96,13 @@ const DSAInterviewPlatform = ({  navigate }) => {
         token,
         navigate,
       );
+      console.log(data);
       if (data.length===0) {
         console.log('Fetched DSA topics:', data);
         nav('/');
         return data;
       }
-      return [];
+      return data;
     } catch (error) {
       nav('/');
       console.error('Error fetching DSA topics:', error);
