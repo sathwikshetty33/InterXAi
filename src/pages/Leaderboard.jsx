@@ -50,8 +50,9 @@ const Leaderboard = () => {
   const fetchLeaderboardData = async () => {
     try {
       const token = getAuthToken();
+      const API_URL = import.meta.env.VITE_API_URL;
       const response = await fetch(
-        `http://localhost:8000/api/interview/leaderboard/${interviewId}/`,
+        `${API_URL}/interview/leaderboard/${interviewId}/`,
         {
           method: "GET",
           headers: {

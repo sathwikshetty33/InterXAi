@@ -24,13 +24,13 @@ export default function UserDashboard() {
   const [resumeFiles, setResumeFiles] = useState({});
   const [uploadingResume, setUploadingResume] = useState({});
   const [applyingToInterview, setApplyingToInterview] = useState({});
-
+  const API_URL = import.meta.env.VITE_API_URL;
   useEffect(() => {
     const fetchProfile = async () => {
       const token = getAuthToken();
 
       const data = await fetchWithToken(
-        `http://localhost:8000/api/users/profile/${id}/`,
+        `${API_URL}/users/profile/${id}/`,
         token,
         navigate
       );
@@ -43,7 +43,7 @@ export default function UserDashboard() {
 
       if (token) {
         try {
-          const res = await fetch(`http://localhost:8000/api/users/check-user/${id}/`, {
+          const res = await fetch(`${API_URL}/users/check-user/${id}/`, {
             headers: { Authorization: `Token ${token}` },
           });
 
@@ -51,7 +51,7 @@ export default function UserDashboard() {
           const isOwner = res.ok && result.success;
           setViewerType(isOwner ? "owner" : "authenticated");
 
-          const interviewsRes = await fetch("http://localhost:8000/api/interview/get-all-interviews/", {
+          const interviewsRes = await fetch("${API_URL}/interview/get-all-interviews/", {
             headers: { Authorization: `Token ${token}` },
           });
           const interviewData = await interviewsRes.json();
@@ -76,7 +76,7 @@ export default function UserDashboard() {
   const handleSave = async (field) => {
     const token = getAuthToken();
     try {
-      const response = await fetch("http://localhost:8000/api/users/profile/", {
+      const response = await fetch("${API_URL}/users/profile/", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -178,7 +178,7 @@ export default function UserDashboard() {
     setApplyingToInterview(prev => ({ ...prev, [interviewId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:8000/api/interview/apply-interview/${interviewId}/`, {
+      const response = await fetch(`${API_URL}/interview/apply-interview/${interviewId}/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +193,7 @@ export default function UserDashboard() {
         toast.success("Application submitted successfully!");
         setResumeFiles((prev) => ({ ...prev, [interviewId]: null }));
         // Refresh interviews to update the UI
-        const interviewsRes = await fetch("http://localhost:8000/api/interview/get-all-interviews/", {
+        const interviewsRes = await fetch("${API_URL}/interview/get-all-interviews/", {
           headers: { Authorization: `Token ${token}` },
         });
         const interviewData = await interviewsRes.json();

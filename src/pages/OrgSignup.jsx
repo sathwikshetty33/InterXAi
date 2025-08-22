@@ -21,6 +21,7 @@ export default function OrgSignup() {
   const [tokenChecked, setTokenChecked] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const API_URL = import.meta.env.VITE_API_URL;
 
   // ✅ Step 1: Check if user is authenticated
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function OrgSignup() {
       [e.target.name]: e.target.value,
     }));
   };
-
+  
   // ✅ Step 3: Submit organization registration
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,7 +49,7 @@ export default function OrgSignup() {
 
     try {
       // 🎯 POST to create organization
-      const response = await fetch("http://localhost:8000/api/organization/create-org/", {
+      const response = await fetch("${API_URL}/organization/create-org/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,7 +65,7 @@ export default function OrgSignup() {
         setError("");
 
         // 🔄 GET organization ID after registration
-        const idRes = await fetch("http://localhost:8000/api/organization/get-org-id/", {
+        const idRes = await fetch("${API_URL}/organization/get-org-id/", {
           method: "GET",
           headers: {
             Authorization: `Token ${token}`,

@@ -43,8 +43,9 @@ const InterviewSession = () => {
 
     const initSession = async () => {
       try {
+        const API_URL = import.meta.env.VITE_API_URL;
         const interviewData = await fetchWithToken(
-          `http://localhost:8000/api/interview/get-all-interviews/`,
+          `${API_URL}/interview/get-all-interviews/`,
           token
         );
         const currentInterview = interviewData.find(
@@ -74,9 +75,9 @@ const InterviewSession = () => {
         }
 
         setInterviewActive(true);
-
+        
         const data = await fetchWithToken(
-          `http://localhost:8000/api/interview/interview-session-initializer/${interviewId}/`,
+          `${API_URL}/interview/interview-session-initializer/${interviewId}/`,
           token,
           null,
           "POST"
@@ -132,7 +133,7 @@ useEffect(() => {
 
   try {
     const data = await fetchWithToken(
-      `http://localhost:8000/api/interview/interview-session/${sessionId}/?answer=${encodeURIComponent(answer)}`,
+      `${API_URL}/interview/interview-session/${sessionId}/?answer=${encodeURIComponent(answer)}`,
       token,
       null,
       "POST"

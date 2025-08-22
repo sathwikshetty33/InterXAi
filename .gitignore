@@ -1,4 +1,5 @@
 .env
+core/venv
 node_modules
 .vscode
 *.log

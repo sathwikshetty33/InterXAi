@@ -28,12 +28,13 @@ export default function Application() {
 
   useEffect(() => {
     const token = getAuthToken();
+    const API_URL = import.meta.env.VITE_API_URL;
     if (!token) {
       navigate("/login");
       return;
     }
 
-    fetch(`http://localhost:8000/api/interview/get-applications/${id}/`, {
+    fetch(`${API_URL}/interview/get-applications/${id}/`, {
       headers: { Authorization: `Token ${token}` },
     })
       .then((res) => {
@@ -1072,6 +1073,7 @@ export default function Application() {
 
   const handleToggleApproved = async (appId) => {
     const token = getAuthToken();
+    const API_URL = import.meta.env.VITE_API_URL;
     if (!token) {
       navigate("/login");
       return;
@@ -1079,7 +1081,7 @@ export default function Application() {
   
     try {
       const res = await fetch(
-        `http://localhost:8000/api/interview/update-application/${appId}/`,
+        `${API_URL}/interview/update-application/${appId}/`,
         {
           method: "PUT",
           headers: {

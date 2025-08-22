@@ -11,7 +11,7 @@ import { toast} from 'react-toastify';
 
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const baseUrl = 'http://localhost:8000/api/';
+const baseUrl = import.meta.env.VITE_API_URL;
 
 // Form Container Component
 const FormContainer = ({ children, isVisible = true }) => (

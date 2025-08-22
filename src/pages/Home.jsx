@@ -17,8 +17,9 @@ const Home = () => {
   useEffect(() => {
     // ✅ Redirect if token is found
     const token = getAuthToken();
+    const API_URL = import.meta.env.VITE_API_URL;
     if (token) {
-      fetch('http://localhost:8000/api/users/get-id/', {
+      fetch(`${API_URL}/users/get-id/`, {
         headers: { Authorization: `Token ${token}` },
       })
         .then(res => res.json())
@@ -81,20 +82,6 @@ const Home = () => {
                 realistic scenarios, and the confidence to land your dream job.
               </p>
 
-              <div className="flex items-center space-x-6 mb-16">
-                <button className="group bg-gradient-to-r from-purple-600 to-blue-600 text-white px-12 py-6 rounded-full text-2xl font-bold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-purple-500/30 flex items-center space-x-3">
-                  <span>Start Practicing</span>
-                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                </button>
-
-                <button className="group flex items-center space-x-3 text-white hover:text-purple-300 transition-all duration-300">
-                  <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 group-hover:border-purple-400/50 group-hover:bg-purple-500/20 transition-all duration-300">
-                    <Play className="w-8 h-8 ml-1" />
-                  </div>
-                  <span className="text-xl font-semibold">Watch Demo</span>
-                </button>
-              </div>
-
               <div className="flex items-center space-x-8 text-gray-300">
                 <div className="flex items-center space-x-2">
                   <div className="flex -space-x-2">
@@ -102,10 +89,10 @@ const Home = () => {
                       <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
                     ))}
                   </div>
-                  <span className="text-lg">4.9/5 from 10,000+ users</span>
+                  
                 </div>
                 <div className="h-6 w-px bg-gray-600"></div>
-                <span className="text-lg">Trusted by Fortune 500 companies</span>
+           
               </div>
             </div>
 
@@ -150,32 +137,6 @@ const Home = () => {
             <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-purple-600/30 to-blue-600/30 rounded-full blur-3xl animate-slow-float"></div>
             <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-tr from-blue-600/30 to-cyan-600/30 rounded-full blur-3xl animate-slow-float-delayed"></div>
             <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-2xl animate-slow-pulse"></div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="px-16 py-32 bg-gradient-to-br from-slate-800/50 to-purple-900/30 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-20">
-              <h2 className="text-7xl font-black text-transparent bg-gradient-to-r from-white to-gray-300 bg-clip-text mb-8">
-                Why InterXAI Dominates
-              </h2>
-              <p className="text-2xl text-gray-300 max-w-4xl mx-auto">
-                Experience the most advanced AI interview preparation platform. 
-                Every feature designed to give you the ultimate competitive edge.
-              </p>
-            </div>
-
-            {/* Feature Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-              {/* ... your 3 feature cards (Brain, Zap, Users) here, unchanged */}
-            </div>
-
-            <div className="text-center">
-              <button className="bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white px-16 py-6 rounded-full text-2xl font-bold hover:from-purple-700 hover:via-blue-700 hover:to-cyan-700 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-purple-500/30 animate-pulse">
-                Experience the Revolution
-              </button>
-            </div>
           </div>
         </section>
 

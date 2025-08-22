@@ -8,7 +8,7 @@ import BackgroundEffects from '../components/ui/BackgroundEffects';
 import CustomStyles from '../components/ui/CustomStyles';
 import { useNavigate } from 'react-router-dom';
 
-const baseUrl = 'http://localhost:8000/api/users/';
+const baseUrl = import.meta.env.VITE_API_URL;
 
 const SignUp = () => {
   const [username, setUsername] = useState('');

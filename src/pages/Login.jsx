@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { handleToken } from '../utils/handleToken';
 
 
-const baseUrl = 'http://localhost:8000/api/users/';
+const baseUrl = import.meta.env.VITE_API_URL;
 
 const Login = () => {
   const [message, setMessage] = useState('');

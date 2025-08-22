@@ -23,8 +23,8 @@ export default function OrgDashboard() {
 
   useEffect(() => {
     const token = getAuthToken();
-
-    fetch(`http://localhost:8000/api/organization/org/${id}/`)
+    const API_URL = import.meta.env.VITE_API_URL;
+    fetch(`${API_URL}/organization/org/${id}/`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch organization data");
         return res.json();
@@ -38,7 +38,7 @@ export default function OrgDashboard() {
       .finally(() => setLoading(false));
 
     if (token) {
-      fetch(`http://localhost:8000/api/organization/check-org/${id}/`, {
+      fetch(`${API_URL}/organization/check-org/${id}/`, {
         headers: { Authorization: `Token ${token}` },
       })
         .then((res) => {
@@ -48,7 +48,7 @@ export default function OrgDashboard() {
         .then((data) => {
           if (data.is_organization) {
             setViewerType("owner");
-            fetch("http://localhost:8000/api/interview/get-interviews/", {
+            fetch("${API_URL}/interview/get-interviews/", {
               headers: { Authorization: `Token ${token}` },
             })
               .then((res) => {
@@ -62,7 +62,7 @@ export default function OrgDashboard() {
                     data.map(async (interview) => {
                       try {
                         const res = await fetch(
-                          `http://localhost:8000/api/interview/get-applications/${interview.id}/`,
+                          `${API_URL}/interview/get-applications/${interview.id}/`,
                           { headers: { Authorization: `Token ${token}` } }
                         );
                         if (res.ok) {
@@ -97,7 +97,7 @@ export default function OrgDashboard() {
     if (viewerType !== "owner") return;
 
     try {
-      const res = await fetch("http://localhost:8000/api/organization/update/", {
+      const res = await fetch("${API_URL}/organization/update/", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

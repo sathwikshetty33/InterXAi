@@ -20,6 +20,7 @@ export default function ProfileSetup() {
 
   const [loading, setLoading] = useState(false);
   const [tokenChecked, setTokenChecked] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   // 🔐 Ensure user is authenticated
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function ProfileSetup() {
 
       if (email && password) {
         // Try logging in
-        fetch("http://localhost:8000/api/users/login/", {
+        fetch(`${API_URL}/users/login/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
@@ -64,7 +65,7 @@ export default function ProfileSetup() {
     const token = getAuthToken();
 
     try {
-      const response = await fetch("http://localhost:8000/api/users/profile/", {
+      const response = await fetch(`${API_URL}/users/profile/`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -76,7 +77,7 @@ export default function ProfileSetup() {
       const data = await response.json();
 
       if (data.success) {
-        const idRes = await fetch("http://localhost:8000/api/users/get-id/", {
+        const idRes = await fetch(`${API_URL}/users/get-id/`, {
           headers: { Authorization: `Token ${token}` },
         });
 

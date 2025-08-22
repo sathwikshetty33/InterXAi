@@ -85,6 +85,7 @@ const DSAInterviewPlatform = ({  navigate }) => {
   // Fetch DSA topics from backend
   const fetchDSATopics = async () => {
     const token = getAuthToken();
+    const API_URL = import.meta.env.VITE_API_URL;
     if (!token) {
       setError('Authentication required');
       return [];
@@ -92,7 +93,7 @@ const DSAInterviewPlatform = ({  navigate }) => {
 
     try {
       const data = await fetchWithToken(
-        `http://localhost:8000/api/interview/get-dsa-questions/${sessionId}/`,
+        `${API_URL}/interview/get-dsa-questions/${sessionId}/`,
         token,
         navigate,
       );
@@ -395,6 +396,7 @@ const DSAInterviewPlatform = ({  navigate }) => {
 
   const submitToBackend = async (question, questionScore) => {
     const token = getAuthToken();
+    const API_URL = import.meta.env.VITE_API_URL;
     if (!token) {
       console.error('No auth token found');
       return;
@@ -413,7 +415,7 @@ const DSAInterviewPlatform = ({  navigate }) => {
       };
 
       const response = await fetchWithToken(
-        `http://localhost:8000/api/interview/add-dsa-scores/${sessionId}/${question.dsaTopicId}/`,
+        `${API_URL}/interview/add-dsa-scores/${sessionId}/${question.dsaTopicId}/`,
         token,
         navigate,
         'POST',
