@@ -234,7 +234,7 @@ useEffect(() => {
   // ✅ Main Interview UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      <div className="flex h-[calc(100vh-100px)]">
+      <div className="flex h-[calc(100vh-100px-5rem)]"> {/* Adjusted height to account for sticky header */}
         {/* Chat History */}
         <div className="w-1/3 bg-slate-800/40 border-r border-slate-700/50 flex flex-col">
           <div className="p-4 border-b border-slate-700/50">
