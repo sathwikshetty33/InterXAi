@@ -10,6 +10,7 @@ import { handleToken } from '../utils/handleToken';
 
 
 const baseUrl = import.meta.env.VITE_API_URL;
+console.log(baseUrl);
 
 const Login = () => {
   const [message, setMessage] = useState('');
@@ -62,7 +63,7 @@ const Login = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const res = await fetch(`${baseUrl}forgot-password/`, {
+      const res = await fetch(`${baseUrl}/forgot-password/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
@@ -87,7 +88,7 @@ const Login = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const res = await fetch(`${baseUrl}verify-reset-code/`, {
+      const res = await fetch(`${baseUrl}/verify-reset-code/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ verification_code: code }),
@@ -119,7 +120,7 @@ const Login = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const res = await fetch(`${baseUrl}reset-password/`, {
+      const res = await fetch(`${baseUrl}/reset-password/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -152,7 +153,7 @@ const Login = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      const res = await fetch(`${baseUrl}resend-code/`, {
+      const res = await fetch(`${baseUrl}/resend-code/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),

@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAuthToken, fetchWithToken } from "../utils/handleToken";
@@ -51,7 +49,7 @@ export default function UserDashboard() {
           const isOwner = res.ok && result.success;
           setViewerType(isOwner ? "owner" : "authenticated");
 
-          const interviewsRes = await fetch("${API_URL}/interview/get-all-interviews/", {
+          const interviewsRes = await fetch(`${API_URL}/interview/get-all-interviews/`, {
             headers: { Authorization: `Token ${token}` },
           });
           const interviewData = await interviewsRes.json();
@@ -76,7 +74,7 @@ export default function UserDashboard() {
   const handleSave = async (field) => {
     const token = getAuthToken();
     try {
-      const response = await fetch("${API_URL}/users/profile/", {
+      const response = await fetch(`${API_URL}/users/profile/`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +191,7 @@ export default function UserDashboard() {
         toast.success("Application submitted successfully!");
         setResumeFiles((prev) => ({ ...prev, [interviewId]: null }));
         // Refresh interviews to update the UI
-        const interviewsRes = await fetch("${API_URL}/interview/get-all-interviews/", {
+        const interviewsRes = await fetch(`${API_URL}/interview/get-all-interviews/`, {
           headers: { Authorization: `Token ${token}` },
         });
         const interviewData = await interviewsRes.json();

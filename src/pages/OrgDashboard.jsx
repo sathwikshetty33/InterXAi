@@ -48,7 +48,7 @@ export default function OrgDashboard() {
         .then((data) => {
           if (data.is_organization) {
             setViewerType("owner");
-            fetch("${API_URL}/interview/get-interviews/", {
+            fetch(`${API_URL}/interview/get-interviews/`, {
               headers: { Authorization: `Token ${token}` },
             })
               .then((res) => {
@@ -97,7 +97,7 @@ export default function OrgDashboard() {
     if (viewerType !== "owner") return;
 
     try {
-      const res = await fetch("${API_URL}/organization/update/", {
+      const res = await fetch(`${API_URL}/organization/update/`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

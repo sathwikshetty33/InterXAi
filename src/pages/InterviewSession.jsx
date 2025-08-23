@@ -24,7 +24,7 @@ const InterviewSession = () => {
   const hasInitialized = useRef(false);
   const chatEndRef = useRef(null);
   const [questionLoading, setQuestionLoading] = useState(false);
-
+   const API_URL = import.meta.env.VITE_API_URL;
 
   // ✅ Auto-scroll to bottom
   useEffect(() => {
