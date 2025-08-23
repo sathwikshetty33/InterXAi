@@ -218,7 +218,7 @@ export default function UserDashboard() {
         if (hasAttempted) {
         // Already attempted the interview
         return (
-          <div className="mt-2 flex items-center gap-2 text-green-400">
+          <div className="mt-2 flex items-center gap-2 text-green-600">
             <CheckCircle className="w-4 h-4" />
             <p>Your result will be announced soon.</p>
           </div>
@@ -227,7 +227,7 @@ export default function UserDashboard() {
         return (
           <button
             onClick={() => navigate(`/interview/start/${interviewId}`)}
-            className="mt-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            className="mt-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
             <CheckCircle className="w-4 h-4" />
             Start Interview
@@ -237,7 +237,7 @@ export default function UserDashboard() {
       } else {
         // Application under review
         return (
-          <div className="mt-2 flex items-center gap-2 text-yellow-400">
+          <div className="mt-2 flex items-center gap-2 text-orange-600">
             <Clock className="w-4 h-4" />
             <p>Your application is under review</p>
           </div>
@@ -256,17 +256,17 @@ export default function UserDashboard() {
               type="file"
               accept="application/pdf"
               onChange={(e) => handleResumeUpload(e, interviewId)}
-              className="text-sm text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-700 file:text-white hover:file:bg-slate-600 file:cursor-pointer"
+              className="text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer"
               disabled={isUploading || isApplying}
             />
             {isUploading && (
-              <div className="flex items-center gap-1 text-sm text-blue-400">
+              <div className="flex items-center gap-1 text-sm text-blue-600">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Uploading...
               </div>
             )}
             {resumeUploaded && !isUploading && (
-              <div className="flex items-center gap-1 text-sm text-green-400">
+              <div className="flex items-center gap-1 text-sm text-green-600">
                 <CheckCircle className="w-4 h-4" />
                 Resume uploaded
               </div>
@@ -278,8 +278,8 @@ export default function UserDashboard() {
             disabled={!resumeUploaded || isUploading || isApplying}
             className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
               !resumeUploaded || isUploading || isApplying
-                ? "bg-gray-600 cursor-not-allowed"
-                : "bg-purple-600 hover:bg-purple-700"
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
             }`}
           >
             {isApplying ? (
@@ -304,7 +304,7 @@ export default function UserDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white bg-slate-900">
+      <div className="min-h-screen flex items-center justify-center text-gray-700 bg-gray-50">
         <Loader2 className="w-6 h-6 mr-2 animate-spin" /> Loading profile...
       </div>
     );
@@ -312,20 +312,20 @@ export default function UserDashboard() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-red-300 bg-slate-900">
+      <div className="min-h-screen flex items-center justify-center text-red-600 bg-gray-50">
         Profile not found.
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-white text-gray-800 relative overflow-hidden">
       <Header viewerType={viewerType} />
 
       <div className="flex flex-col items-center justify-center py-16 px-4 relative z-10">
         <div className={`max-w-6xl w-full transform transition-all duration-1000 ${visible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          <div className="bg-slate-800/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-700/50 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-400/50 to-transparent animate-shimmer"></div>
+          <div className="bg-white/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-blue-100 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-400/50 to-transparent animate-shimmer"></div>
 
             <div className="flex flex-col items-center space-y-4">
               {viewerType === "owner" && editingField === "photo" ? (
@@ -335,24 +335,24 @@ export default function UserDashboard() {
                     name="photo"
                     value={formData.photo}
                     onChange={handleChange}
-                    className="bg-slate-700 text-white p-2 rounded mb-2"
+                    className="bg-blue-50 text-gray-800 p-2 rounded border border-blue-200 mb-2"
                     placeholder="Enter photo URL"
                   />
                   <div className="flex gap-2">
-                    <button onClick={() => handleSave("photo")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
-                    <button onClick={() => setEditingField(null)} className="text-sm bg-gray-600 px-3 py-1 rounded">Cancel</button>
+                    <button onClick={() => handleSave("photo")} className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Save</button>
+                    <button onClick={() => setEditingField(null)} className="text-sm bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">Cancel</button>
                   </div>
                 </div>
               ) : (
                 <img
                   src={profile.photo}
                   alt="User Profile"
-                  className={`w-24 h-24 rounded-full border-2 border-purple-500 shadow-lg ${viewerType === "owner" ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+                  className={`w-24 h-24 rounded-full border-2 border-blue-400 shadow-lg ${viewerType === "owner" ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
                   onClick={() => viewerType === "owner" && setEditingField("photo")}
                 />
               )}
 
-              <h1 className="text-2xl font-bold flex items-center gap-2">
+              <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-800">
                 @{profile.username || "Anonymous"}
               </h1>
 
@@ -363,30 +363,30 @@ export default function UserDashboard() {
                       name="bio"
                       value={formData.bio}
                       onChange={handleChange}
-                      className="bg-slate-700 text-white p-2 rounded w-full"
+                      className="bg-blue-50 text-gray-800 p-2 rounded border border-blue-200 w-full"
                       placeholder="Tell us about yourself..."
                       rows="3"
                     />
                     <div className="flex gap-2">
-                      <button onClick={() => handleSave("bio")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
-                      <button onClick={() => setEditingField(null)} className="text-sm bg-gray-600 px-3 py-1 rounded">Cancel</button>
+                      <button onClick={() => handleSave("bio")} className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Save</button>
+                      <button onClick={() => setEditingField(null)} className="text-sm bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">Cancel</button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-400 flex items-center gap-2">
+                  <p className="text-sm text-gray-600 flex items-center gap-2">
                     {profile.bio || "This user has not added a bio."}
-                    {viewerType === "owner" && <Pencil className="w-4 h-4 cursor-pointer hover:text-purple-400 transition-colors" onClick={() => setEditingField("bio")} />}
+                    {viewerType === "owner" && <Pencil className="w-4 h-4 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => setEditingField("bio")} />}
                   </p>
                 )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full mt-6">
                 {/* GitHub Card */}
-                <div className="bg-[#0d1117] border border-gray-700 rounded-2xl shadow-xl p-4">
-                  <h3 className="text-white text-lg font-semibold mb-2 flex items-center gap-2">
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-xl p-4">
+                  <h3 className="text-gray-800 text-lg font-semibold mb-2 flex items-center gap-2">
                     <Github className="w-5 h-5" /> GitHub Stats
                     {viewerType === "owner" && editingField !== "github" && (
-                      <Pencil className="w-4 h-4 cursor-pointer ml-auto hover:text-purple-400 transition-colors" onClick={() => setEditingField("github")} />
+                      <Pencil className="w-4 h-4 cursor-pointer ml-auto hover:text-blue-600 transition-colors" onClick={() => setEditingField("github")} />
                     )}
                   </h3>
                   {viewerType === "owner" && editingField === "github" ? (
@@ -395,29 +395,29 @@ export default function UserDashboard() {
                         name="github"
                         value={formData.github}
                         onChange={handleChange}
-                        className="bg-slate-700 text-white p-2 rounded w-full"
+                        className="bg-blue-50 text-gray-800 p-2 rounded border border-blue-200 w-full"
                         placeholder="Enter GitHub username"
                       />
                       <div className="flex gap-2">
-                        <button onClick={() => handleSave("github")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
-                        <button onClick={() => setEditingField(null)} className="text-sm bg-gray-600 px-3 py-1 rounded">Cancel</button>
+                        <button onClick={() => handleSave("github")} className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Save</button>
+                        <button onClick={() => setEditingField(null)} className="text-sm bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">Cancel</button>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <p className="text-sm text-slate-400 mb-2">Username:</p>
+                      <p className="text-sm text-gray-600 mb-2">Username:</p>
                       <a
                         href={`https://github.com/${githubUsername}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-400 hover:underline break-all"
+                        className="text-blue-600 hover:underline break-all"
                       >
                         {githubUsername || "Not set"}
                       </a>
                       {githubUsername && (
                         <div className="mt-4 rounded-xl overflow-hidden">
                           <img
-                            src={`https://github-readme-stats.vercel.app/api?username=${githubUsername}&show_icons=true&theme=github_dark`}
+                            src={`https://github-readme-stats.vercel.app/api?username=${githubUsername}&show_icons=true&theme=default`}
                             alt="GitHub Stats"
                             className="w-full object-cover"
                           />
@@ -428,11 +428,11 @@ export default function UserDashboard() {
                 </div>
 
                 {/* LeetCode Card */}
-                <div className="bg-[#1d1d1f] border border-yellow-500/30 rounded-2xl shadow-xl p-4">
-                  <h3 className="text-white text-lg font-semibold mb-2 flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-yellow-400" /> LeetCode Stats
+                <div className="bg-white border border-orange-200 rounded-2xl shadow-xl p-4">
+                  <h3 className="text-gray-800 text-lg font-semibold mb-2 flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-orange-500" /> LeetCode Stats
                     {viewerType === "owner" && editingField !== "leetcode" && (
-                      <Pencil className="w-4 h-4 cursor-pointer ml-auto hover:text-purple-400 transition-colors" onClick={() => setEditingField("leetcode")} />
+                      <Pencil className="w-4 h-4 cursor-pointer ml-auto hover:text-blue-600 transition-colors" onClick={() => setEditingField("leetcode")} />
                     )}
                   </h3>
                   {viewerType === "owner" && editingField === "leetcode" ? (
@@ -441,29 +441,29 @@ export default function UserDashboard() {
                         name="leetcode"
                         value={formData.leetcode}
                         onChange={handleChange}
-                        className="bg-slate-700 text-white p-2 rounded w-full"
+                        className="bg-blue-50 text-gray-800 p-2 rounded border border-blue-200 w-full"
                         placeholder="Enter LeetCode username"
                       />
                       <div className="flex gap-2">
-                        <button onClick={() => handleSave("leetcode")} className="text-sm bg-purple-600 px-3 py-1 rounded">Save</button>
-                        <button onClick={() => setEditingField(null)} className="text-sm bg-gray-600 px-3 py-1 rounded">Cancel</button>
+                        <button onClick={() => handleSave("leetcode")} className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Save</button>
+                        <button onClick={() => setEditingField(null)} className="text-sm bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">Cancel</button>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <p className="text-sm text-slate-400 mb-2">Username:</p>
+                      <p className="text-sm text-gray-600 mb-2">Username:</p>
                       <a
                         href={`https://leetcode.com/${leetcodeUsername}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-yellow-400 hover:underline break-all"
+                        className="text-orange-600 hover:underline break-all"
                       >
                         {leetcodeUsername || "Not set"}
                       </a>
                       {leetcodeUsername && (
                         <div className="mt-4 rounded-xl overflow-hidden">
                           <img
-                            src={`https://leetcard.jacoblin.cool/${leetcodeUsername}?theme=dark&font=baloo&show_rank=true`}
+                            src={`https://leetcard.jacoblin.cool/${leetcodeUsername}?theme=light&font=baloo&show_rank=true`}
                             alt="LeetCode Card"
                             className="w-full object-cover"
                           />
@@ -480,26 +480,26 @@ export default function UserDashboard() {
         {/* Interviews Section */}
         {viewerType == "owner" && interviews.length > 0 && (
           <div className="max-w-4xl w-full mt-12 space-y-6">
-            <h2 className="text-xl font-semibold text-purple-300">Available Interviews</h2>
+            <h2 className="text-xl font-semibold text-blue-700">Available Interviews</h2>
             {interviews.map((interview) => (
-              <div key={interview.id} className="bg-slate-800/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-700/50 shadow-xl">
+              <div key={interview.id} className="bg-white/90 backdrop-blur-xl p-6 rounded-2xl border border-blue-100 shadow-xl">
                 <div className="space-y-3">
                   <div>
-                    <span className="text-purple-400 font-medium">Position:</span>
-                    <p className="text-white text-lg font-semibold">{interview.post}</p>
+                    <span className="text-blue-600 font-medium">Position:</span>
+                    <p className="text-gray-800 text-lg font-semibold">{interview.post}</p>
                   </div>
                   <div>
-                    <span className="text-purple-400 font-medium">Description:</span>
-                    <p className="text-slate-300">{interview.desc}</p>
+                    <span className="text-blue-600 font-medium">Description:</span>
+                    <p className="text-gray-700">{interview.desc}</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <span className="text-purple-400 font-medium">Experience Required:</span>
-                      <p className="text-white">{interview.experience} years</p>
+                      <span className="text-blue-600 font-medium">Experience Required:</span>
+                      <p className="text-gray-800">{interview.experience} years</p>
                     </div>
                     <div>
-                      <span className="text-purple-400 font-medium">Deadline:</span>
-                      <p className="text-white">{new Date(interview.submissionDeadline).toLocaleString()}</p>
+                      <span className="text-blue-600 font-medium">Deadline:</span>
+                      <p className="text-gray-800">{new Date(interview.submissionDeadline).toLocaleString()}</p>
                     </div>
                   </div>
                   {renderInterviewActions(interview)}

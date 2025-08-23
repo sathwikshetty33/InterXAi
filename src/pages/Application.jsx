@@ -3,9 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAuthToken } from "../utils/handleToken";
-import { Loader2, ArrowLeft, FileText, Eye, User, Mail, Phone, MapPin, Briefcase, GraduationCap, Award, Star, Calendar, ChevronDown, ChevronUp, Building, Code, Trophy, Link } from "lucide-react";
+import { Loader2, ArrowLeft, FileText, Eye, User, Mail, Phone, MapPin, Briefcase, GraduationCap, Award, Star, Calendar, ChevronDown, ChevronUp, Building, Code, Trophy, Link, Search, Filter, Download, Share2 } from "lucide-react";
 import { toast} from 'react-toastify';
-
 
 export default function Application() {
   const { id } = useParams(); // interview ID
@@ -24,8 +23,10 @@ export default function Application() {
     certifications: true
   });
   const [feedbackModal, setFeedbackModal] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all"); // all, approved, pending
+  const [sortBy, setSortBy] = useState("score"); // score, name, date
   
-
   useEffect(() => {
     const token = getAuthToken();
     const API_URL = import.meta.env.VITE_API_URL;
@@ -62,21 +63,19 @@ export default function Application() {
 
   const handleProfileClick = (userId) => {
     if (!userId) return;
-    // Navigate to the public profile view
     window.open(`/profile/${userId}`, "_blank"); 
   };
-  
 
   const getScoreColor = (score) => {
-    if (score >= 7) return "text-green-400";
-    if (score >= 4) return "text-yellow-400";
-    return "text-red-400";
+    if (score >= 7) return "text-emerald-600";
+    if (score >= 4) return "text-amber-600";
+    return "text-red-500";
   };
   
   const getScoreBackgroundColor = (score) => {
-    if (score >= 7) return "bg-green-600/20 border-green-500/30";
-    if (score >= 4) return "bg-yellow-600/20 border-yellow-500/30";
-    return "bg-red-600/20 border-red-500/30";
+    if (score >= 7) return "bg-emerald-50 border-emerald-200";
+    if (score >= 4) return "bg-amber-50 border-amber-200";
+    return "bg-red-50 border-red-200";
   };
 
   const toggleSection = (section) => {
@@ -100,14 +99,12 @@ export default function Application() {
       certifications: [],
     };
   
-    // Handle both \n and \r\n line endings from API
     const lines = resumeText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     let currentSection = null;
     let currentExperienceItem = null;
     let currentEducationItem = null;
     let currentProjectText = "";
   
-    // Helper function to finalize current experience item
     const finalizeExperienceItem = () => {
       if (currentExperienceItem && currentSection === "experience") {
         sections.experience.push(currentExperienceItem);
@@ -115,7 +112,6 @@ export default function Application() {
       }
     };
   
-    // Helper function to finalize current education item  
     const finalizeEducationItem = () => {
       if (currentEducationItem && currentSection === "education") {
         sections.education.push(currentEducationItem);
@@ -123,7 +119,6 @@ export default function Application() {
       }
     };
   
-    // Helper function to finalize current project
     const finalizeProjectItem = () => {
       if (currentSection === "projects" && currentProjectText.trim()) {
         sections.projects.push(currentProjectText.trim());
@@ -133,7 +128,6 @@ export default function Application() {
   
     lines.forEach((line, index) => {
       if (line.startsWith("###")) {
-        // Finalize current items before switching sections
         finalizeExperienceItem();
         finalizeEducationItem();
         finalizeProjectItem();
@@ -148,7 +142,6 @@ export default function Application() {
         else if (sectionTitle.includes("projects")) currentSection = "projects";
         else if (sectionTitle.includes("achievements")) currentSection = "achievements";
         
-        // Reset current items when switching sections
         currentExperienceItem = null;
         currentEducationItem = null;
         currentProjectText = "";
@@ -173,22 +166,17 @@ export default function Application() {
           if (line.startsWith("-")) {
             const cleanLine = line.replace("-", "").trim();
             
-            // Check if this looks like a new experience entry (company/position line)
             if (isCompanyPositionLine(cleanLine)) {
-              // If we have a previous experience item, push it to the array
               if (currentExperienceItem) {
                 sections.experience.push(currentExperienceItem);
               }
               
-              // Create new experience item
               currentExperienceItem = parseStructuredItem(cleanLine);
               currentExperienceItem.details = [];
             } else {
-              // This is a description line, add it to the current experience item
               if (currentExperienceItem) {
                 currentExperienceItem.details.push(cleanLine);
               } else {
-                // If no current item, create a simple one
                 currentExperienceItem = {
                   title: cleanLine,
                   organization: "",
@@ -204,20 +192,15 @@ export default function Application() {
           if (line.startsWith("-")) {
             const cleanLine = line.replace("-", "").trim();
             
-            // Check if this looks like a new education entry
             if (isEducationMainLine(cleanLine)) {
-              // If we have a previous education item, push it to the array
               if (currentEducationItem) {
                 sections.education.push(currentEducationItem);
               }
               
-              // Create new education item
               currentEducationItem = parseEducationItem(cleanLine);
               currentEducationItem.details = [];
             } else {
-              // This is additional info (like CGPA, percentage, etc.)
               if (currentEducationItem) {
-                // Check if it's CGPA or percentage info
                 if (cleanLine.includes("CGPA:") || cleanLine.includes("Percentage:")) {
                   if (cleanLine.includes("CGPA:")) {
                     currentEducationItem.cgpa = cleanLine.replace("CGPA:", "").trim();
@@ -228,7 +211,6 @@ export default function Application() {
                   currentEducationItem.details.push(cleanLine);
                 }
               } else {
-                // If no current item, create a simple one
                 currentEducationItem = {
                   title: cleanLine,
                   organization: "",
@@ -246,20 +228,15 @@ export default function Application() {
         if (line.startsWith("-")) {
           const cleanLine = line.replace(/^-\s*/, "");
           
-          // FIXED: Check if this is a main project line
           if (isMainProjectLine(cleanLine)) {
-            // If we have accumulated project text, save it as a separate project
             if (currentProjectText.trim()) {
               sections.projects.push(currentProjectText.trim());
             }
-            // Start new project
             currentProjectText = cleanLine;
           } else {
-            // This is a description line, add it to current project
             if (currentProjectText) {
               currentProjectText += "\n - " + cleanLine;
             } else {
-              // Fallback: treat as standalone project
               currentProjectText = cleanLine;
             }
           }
@@ -273,7 +250,6 @@ export default function Application() {
       }
     });
   
-    // Don't forget to push the last items
     finalizeExperienceItem();
     finalizeEducationItem();
     finalizeProjectItem();
@@ -281,8 +257,6 @@ export default function Application() {
     return sections;
   };
   
-  
-  // Helper function to detect if a line is a company/position line
   const isCompanyPositionLine = (line) => {
     const companyPatterns = [
       /\b(intern|associate|developer|engineer|manager|analyst|coordinator|specialist|assistant|director|lead|senior|junior|consultant|administrator|executive|supervisor|technician|designer|architect|programmer|scientist|researcher|officer|representative|agent|advisor|instructor|trainer|mentor|co-founder|founder|tutor)\b/i,
@@ -351,83 +325,83 @@ export default function Application() {
   };
 
   const renderPersonalInfo = (info) => (
-    <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-8 rounded-2xl border border-slate-700/50 mb-8 shadow-xl">
+    <div className="bg-white rounded-2xl border border-gray-100 p-8 mb-8 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
-        <div className="bg-purple-600/20 p-3 rounded-xl">
-          <User size={24} className="text-purple-400" />
+        <div className="bg-indigo-50 p-3 rounded-xl">
+          <User size={24} className="text-indigo-600" />
         </div>
-        <h3 className="text-2xl font-bold text-white">Personal Information</h3>
+        <h3 className="text-2xl font-bold text-gray-900">Personal Information</h3>
       </div>
       
       <div className="grid md:grid-cols-2 gap-6">
         {info.name && (
-          <div className="flex items-center gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700/30">
-            <div className="bg-blue-600/20 p-2 rounded-lg">
-              <User size={18} className="text-blue-400" />
+          <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="bg-blue-50 p-2 rounded-lg">
+              <User size={18} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-slate-400 text-sm">Full Name</p>
-              <p className="text-white font-semibold">{info.name}</p>
+              <p className="text-gray-500 text-sm">Full Name</p>
+              <p className="text-gray-900 font-semibold">{info.name}</p>
             </div>
           </div>
         )}
         
         {info.email && (
-          <div className="flex items-center gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700/30">
-            <div className="bg-green-600/20 p-2 rounded-lg">
-              <Mail size={18} className="text-green-400" />
+          <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="bg-emerald-50 p-2 rounded-lg">
+              <Mail size={18} className="text-emerald-600" />
             </div>
             <div>
-              <p className="text-slate-400 text-sm">Email</p>
-              <p className="text-white font-semibold">{info.email}</p>
+              <p className="text-gray-500 text-sm">Email</p>
+              <p className="text-gray-900 font-semibold">{info.email}</p>
             </div>
           </div>
         )}
         
         {info.phone && (
-          <div className="flex items-center gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700/30">
-            <div className="bg-yellow-600/20 p-2 rounded-lg">
-              <Phone size={18} className="text-yellow-400" />
+          <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="bg-amber-50 p-2 rounded-lg">
+              <Phone size={18} className="text-amber-600" />
             </div>
             <div>
-              <p className="text-slate-400 text-sm">Phone</p>
-              <p className="text-white font-semibold">{info.phone}</p>
+              <p className="text-gray-500 text-sm">Phone</p>
+              <p className="text-gray-900 font-semibold">{info.phone}</p>
             </div>
           </div>
         )}
         
         {info.location && (
-          <div className="flex items-center gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700/30">
-            <div className="bg-red-600/20 p-2 rounded-lg">
-              <MapPin size={18} className="text-red-400" />
+          <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="bg-red-50 p-2 rounded-lg">
+              <MapPin size={18} className="text-red-600" />
             </div>
             <div>
-              <p className="text-slate-400 text-sm">Location</p>
-              <p className="text-white font-semibold">{info.location}</p>
+              <p className="text-gray-500 text-sm">Location</p>
+              <p className="text-gray-900 font-semibold">{info.location}</p>
             </div>
           </div>
         )}
         
         {info.linkedin && (
-          <div className="flex items-center gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700/30">
-            <div className="bg-blue-600/20 p-2 rounded-lg">
-              <Link size={18} className="text-blue-400" />
+          <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="bg-blue-50 p-2 rounded-lg">
+              <Link size={18} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-slate-400 text-sm">LinkedIn</p>
-              <p className="text-white font-semibold truncate">{info.linkedin}</p>
+              <p className="text-gray-500 text-sm">LinkedIn</p>
+              <p className="text-gray-900 font-semibold truncate">{info.linkedin}</p>
             </div>
           </div>
         )}
         
         {info.github && (
-          <div className="flex items-center gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700/30">
-            <div className="bg-purple-600/20 p-2 rounded-lg">
-              <Code size={18} className="text-purple-400" />
+          <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="bg-purple-50 p-2 rounded-lg">
+              <Code size={18} className="text-purple-600" />
             </div>
             <div>
-              <p className="text-slate-400 text-sm">GitHub</p>
-              <p className="text-white font-semibold truncate">{info.github}</p>
+              <p className="text-gray-500 text-sm">GitHub</p>
+              <p className="text-gray-900 font-semibold truncate">{info.github}</p>
             </div>
           </div>
         )}
@@ -436,28 +410,28 @@ export default function Application() {
   );
 
   const renderCollapsibleSection = (title, icon, content, sectionKey, itemCount = 0) => (
-    <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-8 rounded-2xl border border-slate-700/50 mb-8 shadow-xl">
+    <div className="bg-white rounded-2xl border border-gray-100 p-8 mb-8 shadow-sm">
       <button
         onClick={() => toggleSection(sectionKey)}
-        className="w-full flex items-center justify-between group hover:bg-slate-800/50 p-4 rounded-xl transition-all duration-200"
+        className="w-full flex items-center justify-between group hover:bg-gray-50 p-4 rounded-xl transition-all duration-200"
       >
         <div className="flex items-center gap-3">
-          <div className="bg-purple-600/20 p-3 rounded-xl group-hover:bg-purple-600/30 transition-colors">
+          <div className="bg-indigo-50 p-3 rounded-xl group-hover:bg-indigo-100 transition-colors">
             {icon}
           </div>
           <div className="text-left">
-            <h3 className="text-2xl font-bold text-white group-hover:text-purple-200 transition-colors">
+            <h3 className="text-2xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
               {title}
             </h3>
             {itemCount > 0 && (
-              <p className="text-slate-400 text-sm">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+              <p className="text-gray-500 text-sm">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
             )}
           </div>
         </div>
-        <div className="bg-slate-700/50 p-2 rounded-lg group-hover:bg-slate-600/50 transition-colors">
+        <div className="bg-gray-100 p-2 rounded-lg group-hover:bg-gray-200 transition-colors">
           {expandedSections[sectionKey] ? 
-            <ChevronUp size={20} className="text-purple-400" /> : 
-            <ChevronDown size={20} className="text-purple-400" />
+            <ChevronUp size={20} className="text-indigo-600" /> : 
+            <ChevronDown size={20} className="text-indigo-600" />
           }
         </div>
       </button>
@@ -475,7 +449,7 @@ export default function Application() {
       {skills.map((skill, index) => (
         <span
           key={index}
-          className="bg-purple-600/20 text-purple-300 px-3 py-1 rounded-full text-sm border border-purple-500/30"
+          className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-sm border border-indigo-200"
         >
           {skill}
         </span>
@@ -486,18 +460,18 @@ export default function Application() {
   const renderExperience = (experience) => (
     <div className="space-y-6">
       {experience.map((exp, index) => (
-        <div key={index} className="bg-gradient-to-r from-slate-900/80 to-slate-800/80 p-6 rounded-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-200 group">
+        <div key={index} className="bg-gray-50 p-6 rounded-xl border border-gray-100 hover:border-gray-200 transition-all duration-200 group">
           <div className="flex items-start gap-4">
-            <div className="bg-blue-600/20 p-3 rounded-xl flex-shrink-0">
-              <Briefcase size={20} className="text-blue-400" />
+            <div className="bg-blue-50 p-3 rounded-xl flex-shrink-0">
+              <Briefcase size={20} className="text-blue-600" />
             </div>
             <div className="flex-1">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3">
-                <h4 className="text-xl font-bold text-white group-hover:text-blue-200 transition-colors">
+                <h4 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                   {exp.title || exp.raw}
                 </h4>
                 {exp.period && (
-                  <div className="flex items-center gap-2 text-slate-400 mt-1 lg:mt-0">
+                  <div className="flex items-center gap-2 text-gray-500 mt-1 lg:mt-0">
                     <Calendar size={16} />
                     <span className="text-sm">{exp.period}</span>
                   </div>
@@ -505,13 +479,13 @@ export default function Application() {
               </div>
               
               {exp.organization && (
-                <div className="flex items-center gap-2 text-slate-300 mb-2">
-                  <Building size={16} className="text-slate-400" />
+                <div className="flex items-center gap-2 text-gray-700 mb-2">
+                  <Building size={16} className="text-gray-500" />
                   <span className="font-medium">{exp.organization}</span>
                   {exp.location && (
                     <>
-                      <span className="text-slate-500">•</span>
-                      <span className="text-slate-400">{exp.location}</span>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-500">{exp.location}</span>
                     </>
                   )}
                 </div>
@@ -521,8 +495,8 @@ export default function Application() {
                 <div className="mt-3 space-y-2">
                   {exp.details.map((detail, idx) => (
                     <div key={idx} className="flex items-start gap-2">
-                      <div className="bg-blue-600/20 w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0"></div>
-                      <p className="text-slate-300 text-sm leading-relaxed">{detail}</p>
+                      <div className="bg-blue-500 w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0"></div>
+                      <p className="text-gray-600 text-sm leading-relaxed">{detail}</p>
                     </div>
                   ))}
                 </div>
@@ -535,28 +509,27 @@ export default function Application() {
   );
 
   const isMainProjectLine = (line) => {
-  const mainProjectPatterns = [
-    /^\*\*.*\*\*:/, // **ProjectName**: pattern
-    /\|\s*[A-Za-z]/, // Contains | followed by tech stack
-    /\(GitHub\)/i, // Contains GitHub indicator
-    /\(\d{4}\)/, // Contains year in parentheses
-    /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}/i,
-    /\d{4}\s*[-–]\s*(\d{4}|present|current)/i,
-    /^[A-Z][a-z\s]+\s+[-–]\s+[A-Z]/,
-    /^[A-Z][a-z\s]+\s+\|\s+[A-Z]/,
-    // Pattern for projects that start with **Name**
-    /^\*\*[^*]+\*\*/,
-  ];
-  
-  return mainProjectPatterns.some(pattern => pattern.test(line));
-};
+    const mainProjectPatterns = [
+      /^\*\*.*\*\*:/, 
+      /\|\s*[A-Za-z]/, 
+      /\(GitHub\)/i, 
+      /\(\d{4}\)/, 
+      /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}/i,
+      /\d{4}\s*[-–]\s*(\d{4}|present|current)/i,
+      /^[A-Z][a-z\s]+\s+[-–]\s+[A-Z]/,
+      /^[A-Z][a-z\s]+\s+\|\s+[A-Z]/,
+      /^\*\*[^*]+\*\*/,
+    ];
+    
+    return mainProjectPatterns.some(pattern => pattern.test(line));
+  };
 
   const isEducationMainLine = (line) => {
     const educationPatterns = [
       /\b(b\.e\.|b\.tech|bachelor|master|m\.tech|m\.s\.|diploma|degree|engineering|science|arts|commerce|management|phd|doctorate)\b/i,
       /\b(university|college|school|institute|academy)\b/i,
       /\b(board|cbse|icse|state board|kseeb)\b/i,
-      /\d{4}\s*[-–]\s*\d{4}/i, // Year range
+      /\d{4}\s*[-–]\s*\d{4}/i, 
     ];
     
     return educationPatterns.some(pattern => pattern.test(line));
@@ -574,19 +547,14 @@ export default function Application() {
       raw: text
     };
   
-    // Enhanced parsing patterns for education
     const patterns = {
-      // Education patterns - handle multiple formats
       degreeAt: /^(.+?)\s+[-–]\s+(.+?)(?:\s*,\s*(.+?))?(?:\s+\((.+?)\))?$/i,
       boardSchool: /^(.+?)\s+[-–]\s+(.+?)(?:\s*,\s*(.+?))?(?:\s+\((.+?)\))?$/i,
-      
-      // Common patterns
       period: /(\d{4})\s*[-–]\s*(\d{4})/i,
       location: /,\s*([^,]+(?:,\s*[A-Z]{2})?)\s*$/i,
       dateInParens: /\(\s*(.+?)\s*\)/,
     };
   
-    // Try to parse degree/institution format
     let match = text.match(patterns.degreeAt);
     if (match) {
       item.title = match[1]?.trim() || "";
@@ -595,7 +563,6 @@ export default function Application() {
       item.period = match[4]?.trim() || "";
     }
   
-    // Extract dates from parentheses if not found above
     if (!item.period) {
       const dateMatch = text.match(patterns.dateInParens);
       if (dateMatch) {
@@ -606,7 +573,6 @@ export default function Application() {
       }
     }
   
-    // If no structured data found, use the raw text as title
     if (!item.title && !item.organization) {
       item.title = text;
     }
@@ -617,25 +583,25 @@ export default function Application() {
   const renderEducation = (education) => (
     <div className="space-y-6">
       {education.map((edu, index) => (
-        <div key={index} className="bg-gradient-to-r from-slate-900/80 to-slate-800/80 p-6 rounded-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-200 group">
+        <div key={index} className="bg-gray-50 p-6 rounded-xl border border-gray-100 hover:border-gray-200 transition-all duration-200 group">
           <div className="flex items-start gap-4">
-            <div className="bg-green-600/20 p-3 rounded-xl flex-shrink-0">
-              <GraduationCap size={20} className="text-green-400" />
+            <div className="bg-emerald-50 p-3 rounded-xl flex-shrink-0">
+              <GraduationCap size={20} className="text-emerald-600" />
             </div>
             <div className="flex-1">
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-3">
                 <div className="flex-1">
-                  <h4 className="text-xl font-bold text-white group-hover:text-green-200 transition-colors mb-1">
+                  <h4 className="text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition-colors mb-1">
                     {edu.title || edu.raw}
                   </h4>
                   {edu.organization && (
-                    <div className="flex items-center gap-2 text-slate-300 mb-2">
-                      <Building size={16} className="text-slate-400" />
+                    <div className="flex items-center gap-2 text-gray-700 mb-2">
+                      <Building size={16} className="text-gray-500" />
                       <span className="font-medium">{edu.organization}</span>
                       {edu.location && (
                         <>
-                          <span className="text-slate-500">•</span>
-                          <span className="text-slate-400">{edu.location}</span>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-500">{edu.location}</span>
                         </>
                       )}
                     </div>
@@ -644,19 +610,18 @@ export default function Application() {
                 
                 <div className="flex flex-col lg:items-end gap-2 mt-2 lg:mt-0">
                   {edu.period && (
-                    <div className="flex items-center gap-2 text-slate-400">
+                    <div className="flex items-center gap-2 text-gray-500">
                       <Calendar size={16} />
                       <span className="text-sm">{edu.period}</span>
                     </div>
                   )}
                   
-                  {/* Display CGPA or Percentage */}
                   <div className="flex gap-2">
                     {edu.cgpa && (
-                      <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 px-3 py-1.5 rounded-lg border border-yellow-500/30">
+                      <div className="bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
                         <div className="flex items-center gap-2">
-                          <Trophy size={16} className="text-yellow-400" />
-                          <span className="text-yellow-300 font-semibold text-sm">
+                          <Trophy size={16} className="text-amber-600" />
+                          <span className="text-amber-700 font-semibold text-sm">
                             CGPA: {edu.cgpa}
                           </span>
                         </div>
@@ -664,10 +629,10 @@ export default function Application() {
                     )}
                     
                     {edu.percentage && (
-                      <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 px-3 py-1.5 rounded-lg border border-blue-500/30">
+                      <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200">
                         <div className="flex items-center gap-2">
-                          <Star size={16} className="text-blue-400" />
-                          <span className="text-blue-300 font-semibold text-sm">
+                          <Star size={16} className="text-blue-600" />
+                          <span className="text-blue-700 font-semibold text-sm">
                             {edu.percentage}
                           </span>
                         </div>
@@ -677,13 +642,12 @@ export default function Application() {
                 </div>
               </div>
               
-              {/* Additional Details */}
               {edu.details && edu.details.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {edu.details.map((detail, idx) => (
                     <div key={idx} className="flex items-start gap-2">
-                      <div className="bg-green-600/20 w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0"></div>
-                      <p className="text-slate-300 text-sm leading-relaxed">{detail}</p>
+                      <div className="bg-emerald-500 w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0"></div>
+                      <p className="text-gray-600 text-sm leading-relaxed">{detail}</p>
                     </div>
                   ))}
                 </div>
@@ -696,166 +660,150 @@ export default function Application() {
   );
 
   const parseProjectName = (projectText) => {
-  if (!projectText) return 'Unnamed Project';
-  
-  const firstLine = projectText.split('\n')[0];
-  
-  // Try different patterns to extract project name
-  
-  // Pattern 1: ProjectName (GitHub) | Tech Stack (Year)
-  let match = firstLine.match(/^(.+?)\s*\(GitHub\)/);
-  if (match) {
-    return match[1].trim();
-  }
-  
-  // Pattern 2: ProjectName | Tech Stack (Year)
-  match = firstLine.match(/^(.+?)\s*\|/);
-  if (match) {
-    return match[1].trim();
-  }
-  
-  // Pattern 3: ProjectName - Description
-  match = firstLine.match(/^(.+?)\s*[-–]/);
-  if (match) {
-    return match[1].trim();
-  }
-  
-  // Pattern 4: Just take the first part before any special characters
-  match = firstLine.match(/^([^|\-–(]+)/);
-  if (match) {
-    return match[1].trim();
-  }
-  
-  // Fallback: return the first line trimmed
-  return firstLine.trim();
-};
+    if (!projectText) return 'Unnamed Project';
+    
+    const firstLine = projectText.split('\n')[0];
+    
+    let match = firstLine.match(/^(.+?)\s*\(GitHub\)/);
+    if (match) {
+      return match[1].trim();
+    }
+    
+    match = firstLine.match(/^(.+?)\s*\|/);
+    if (match) {
+      return match[1].trim();
+    }
+    
+    match = firstLine.match(/^(.+?)\s*[-–]/);
+    if (match) {
+      return match[1].trim();
+    }
+    
+    match = firstLine.match(/^([^|\-–(]+)/);
+    if (match) {
+      return match[1].trim();
+    }
+    
+    return firstLine.trim();
+  };
 
   const renderProjects = (projects) => (
-  <div className="space-y-6">
-    {projects.map((project, index) => {
-      // Parse project data using enhanced logic
-      const lines = typeof project === 'string' ? project.split('\n').filter(line => line.trim()) : [];
-      const firstLine = lines[0] || (typeof project === 'string' ? project : project.title || project.raw || '');
-      
-      // Use the enhanced parseProjectName function
-      const projectName = parseProjectName(firstLine);
-      
-      // Extract tech stack and year - handle different formats
-      let techStack = [];
-      let year = new Date().getFullYear();
-      
-      // Try to extract tech stack from various patterns
-      let projectMatch = firstLine.match(/\|\s*(.+?)\s*\((\d{4})\)/);
-      if (projectMatch) {
-        techStack = projectMatch[1].split(',').map(t => t.trim());
-        year = projectMatch[2];
-      } else {
-        // Try pattern without year
-        projectMatch = firstLine.match(/\|\s*(.+?)$/);
+    <div className="space-y-6">
+      {projects.map((project, index) => {
+        const lines = typeof project === 'string' ? project.split('\n').filter(line => line.trim()) : [];
+        const firstLine = lines[0] || (typeof project === 'string' ? project : project.title || project.raw || '');
+        
+        const projectName = parseProjectName(firstLine);
+        
+        let techStack = [];
+        let year = new Date().getFullYear();
+        
+        let projectMatch = firstLine.match(/\|\s*(.+?)\s*\((\d{4})\)/);
         if (projectMatch) {
           techStack = projectMatch[1].split(',').map(t => t.trim());
+          year = projectMatch[2];
         } else {
-          // Extract from description if available
-          const description = lines.join(' ');
-          const techMatch = description.match(/(?:built with|using|technologies?:?)\s*([^.]+)/i);
-          if (techMatch) {
-            techStack = techMatch[1].split(/[,\s]+/).filter(tech => tech.length > 2);
+          projectMatch = firstLine.match(/\|\s*(.+?)$/);
+          if (projectMatch) {
+            techStack = projectMatch[1].split(',').map(t => t.trim());
+          } else {
+            const description = lines.join(' ');
+            const techMatch = description.match(/(?:built with|using|technologies?:?)\s*([^.]+)/i);
+            if (techMatch) {
+              techStack = techMatch[1].split(/[,\s]+/).filter(tech => tech.length > 2);
+            }
           }
         }
-      }
-      
-      // Extract description lines (lines starting with spaces or dashes after first line)
-      const descriptionLines = lines.slice(1).filter(line => line.trim().startsWith('-') || line.trim().match(/^\s/));
+        
+        const descriptionLines = lines.slice(1).filter(line => line.trim().startsWith('-') || line.trim().match(/^\s/));
 
-      return (
-        <div key={index} className="bg-gradient-to-r from-slate-900/80 to-slate-800/80 p-6 rounded-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-200 group">
-          <div className="flex items-start gap-4">
-            <div className="bg-purple-600/20 p-3 rounded-xl flex-shrink-0">
-              <Code size={20} className="text-purple-400" />
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3">
-                <div className="flex items-center gap-3 mb-2">
-                  <h4 className="text-xl font-bold text-white group-hover:text-purple-200 transition-colors">
-                    {projectName} {/* Now uses enhanced parsing */}
-                  </h4>
-                  <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-slate-700/50 to-slate-600/50 rounded-full border border-slate-500/30">
-                    <svg className="w-3 h-3 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-                    </svg>
-                    <span className="text-slate-400 text-xs">GitHub</span>
-                  </div>
-                  {year !== new Date().getFullYear() && (
-                    <div className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-md border border-purple-500/30">
-                      {year}
-                    </div>
-                  )}
-                </div>
+        return (
+          <div key={index} className="bg-gray-50 p-6 rounded-xl border border-gray-100 hover:border-gray-200 transition-all duration-200 group">
+            <div className="flex items-start gap-4">
+              <div className="bg-purple-50 p-3 rounded-xl flex-shrink-0">
+                <Code size={20} className="text-purple-600" />
               </div>
-              
-              {/* Tech Stack */}
-              {techStack.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {techStack.slice(0, 8).map((tech, techIndex) => (
-                    <span key={techIndex} className="px-3 py-1 bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 text-xs rounded-lg border border-cyan-500/30 hover:border-cyan-400/50 hover:from-cyan-500/30 hover:to-cyan-600/30 transition-all duration-200 font-medium">
-                      {tech}
-                    </span>
-                  ))}
-                  {techStack.length > 8 && (
-                    <span className="px-3 py-1 bg-slate-700/50 text-slate-400 text-xs rounded-lg border border-slate-600/30 font-medium">
-                      +{techStack.length - 8} more
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Project Description */}
-              <div className="relative bg-slate-800/20 rounded-lg p-4 border border-slate-600/20 group-hover:border-purple-400/30 group-hover:bg-slate-800/30 transition-all duration-300">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-400 to-purple-600 rounded-r-full opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="pl-4">
-                  {descriptionLines.length > 0 ? (
-                    <div className="space-y-3">
-                      {descriptionLines.slice(0, 5).map((desc, descIndex) => (
-                        <div key={descIndex} className="flex items-start gap-3">
-                          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full mt-2 flex-shrink-0 group-hover:bg-purple-300 transition-colors duration-300"></div>
-                          <p className="text-slate-300 text-sm leading-relaxed group-hover:text-slate-200 transition-colors duration-300">
-                            {desc.replace(/^[-\s]+/, '').trim()}
-                          </p>
-                        </div>
-                      ))}
-                      {descriptionLines.length > 5 && (
-                        <div className="flex items-center gap-3 pt-2 border-t border-slate-600/20">
-                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
-                          <span className="text-slate-400 text-xs font-medium">
-                            +{descriptionLines.length - 5} additional features
-                          </span>
-                        </div>
-                      )}
+              <div className="flex-1">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h4 className="text-xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">
+                      {projectName}
+                    </h4>
+                    <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full border border-gray-200">
+                      <svg className="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+                      </svg>
+                      <span className="text-gray-600 text-xs font-medium">GitHub</span>
                     </div>
-                  ) : (
-                    <p className="text-slate-300 text-sm leading-relaxed group-hover:text-slate-200 transition-colors duration-300 pl-4">
-                      {project.replace(/^[-\s]*/, '').trim()}
-                    </p>
-                  )}
+                    {year !== new Date().getFullYear() && (
+                      <div className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-md border border-purple-200 font-medium">
+                        {year}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {techStack.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {techStack.slice(0, 8).map((tech, techIndex) => (
+                      <span key={techIndex} className="px-3 py-1 bg-cyan-50 text-cyan-700 text-xs rounded-lg border border-cyan-200 font-medium">
+                        {tech}
+                      </span>
+                    ))}
+                    {techStack.length > 8 && (
+                      <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg border border-gray-200 font-medium">
+                        +{techStack.length - 8} more
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="relative bg-white rounded-lg p-4 border border-gray-100 group-hover:border-purple-200 group-hover:bg-purple-50/30 transition-all duration-300">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-400 to-purple-600 rounded-r-full opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="pl-4">
+                    {descriptionLines.length > 0 ? (
+                      <div className="space-y-3">
+                        {descriptionLines.slice(0, 5).map((desc, descIndex) => (
+                          <div key={descIndex} className="flex items-start gap-3">
+                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0 group-hover:bg-purple-600 transition-colors duration-300"></div>
+                            <p className="text-gray-600 text-sm leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
+                              {desc.replace(/^[-\s]+/, '').trim()}
+                            </p>
+                          </div>
+                        ))}
+                        {descriptionLines.length > 5 && (
+                          <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+                            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                            <span className="text-gray-500 text-xs font-medium">
+                              +{descriptionLines.length - 5} additional features
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 text-sm leading-relaxed group-hover:text-gray-700 transition-colors duration-300 pl-4">
+                        {project.replace(/^[-\s]*/, '').trim()}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      );
-    })}
-  </div>
-);
+        );
+      })}
+    </div>
+  );
 
   const renderAchievements = (achievements) => (
     <div className="grid sm:grid-cols-2 gap-4">
       {achievements.map((achievement, index) => (
-        <div key={index} className="bg-gradient-to-r from-yellow-600/10 to-orange-600/10 p-6 rounded-xl border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-200 group">
+        <div key={index} className="bg-amber-50 p-6 rounded-xl border border-amber-200 hover:border-amber-300 transition-all duration-200 group">
           <div className="flex items-start gap-3">
-            <div className="bg-yellow-600/20 p-2 rounded-lg flex-shrink-0">
-              <Trophy size={18} className="text-yellow-400" />
+            <div className="bg-amber-100 p-2 rounded-lg flex-shrink-0">
+              <Trophy size={18} className="text-amber-600" />
             </div>
-            <p className="text-slate-200 leading-relaxed group-hover:text-yellow-100 transition-colors">
+            <p className="text-gray-700 leading-relaxed group-hover:text-amber-800 transition-colors">
               {achievement}
             </p>
           </div>
@@ -867,12 +815,12 @@ export default function Application() {
   const renderCertifications = (certifications) => (
     <div className="grid sm:grid-cols-2 gap-4">
       {certifications.map((cert, index) => (
-        <div key={index} className="bg-gradient-to-r from-emerald-600/10 to-teal-600/10 p-6 rounded-xl border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 group">
+        <div key={index} className="bg-emerald-50 p-6 rounded-xl border border-emerald-200 hover:border-emerald-300 transition-all duration-200 group">
           <div className="flex items-start gap-3">
-            <div className="bg-emerald-600/20 p-2 rounded-lg flex-shrink-0">
-              <Award size={18} className="text-emerald-400" />
+            <div className="bg-emerald-100 p-2 rounded-lg flex-shrink-0">
+              <Award size={18} className="text-emerald-600" />
             </div>
-            <p className="text-slate-200 leading-relaxed group-hover:text-emerald-100 transition-colors">
+            <p className="text-gray-700 leading-relaxed group-hover:text-emerald-800 transition-colors">
               {cert}
             </p>
           </div>
@@ -880,196 +828,6 @@ export default function Application() {
       ))}
     </div>
   );
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <div className="bg-slate-800/60 p-8 rounded-xl border border-slate-700/50 flex items-center gap-3">
-          <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
-          <span className="text-slate-300">Loading applications...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (viewMode) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-6 relative">
-        <button
-          onClick={() => setViewMode(null)}
-          className="absolute top-6 left-6 bg-purple-600 px-4 py-2 rounded-lg hover:bg-purple-700 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl z-10"
-        >
-          <ArrowLeft size={18} /> Back to Applications
-        </button>
-
-        {viewMode.type === "resume" ? (
-          <div className="flex flex-col items-center mt-20">
-            <div className="bg-slate-800/60 p-6 rounded-xl border border-slate-700/50 mb-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-purple-300 text-center">
-                Resume
-              </h2>
-            </div>
-            <div className="w-full max-w-5xl bg-slate-800/40 p-6 rounded-xl border border-slate-700/50 shadow-lg">
-              <iframe
-                src={viewMode.app.resume}
-                title="Resume"
-                className="w-full h-[80vh] border-0 rounded-lg bg-white"
-              ></iframe>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-20 max-w-6xl mx-auto">
-            <div className="bg-gradient-to-r from-slate-800/80 to-slate-900/80 p-8 rounded-2xl border border-slate-700/50 mb-8 shadow-xl">
-              <div className="text-center">
-                <h2 className="text-3xl font-bold text-white mb-2">
-                  Extracted Resume
-                </h2>
-                <p className="text-slate-300">
-                  Structured resume data for easy review and analysis
-                </p>
-              </div>
-            </div>
-
-            {(() => {
-              const parsedResume = parseExtractedResume(viewMode.app.extratedResume);
-              
-              if (!parsedResume) {
-                return (
-                  <div className="bg-slate-800/60 p-6 rounded-xl border border-slate-700/50 shadow-lg">
-                    <div className="bg-slate-900/50 p-6 rounded-lg border border-red-500/30">
-                      <p className="text-red-400 text-center">No extracted data available or unable to parse resume content.</p>
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <div className="space-y-6">
-                  {/* Personal Information */}
-                  {parsedResume.personalInfo && Object.keys(parsedResume.personalInfo).length > 0 && 
-                    renderPersonalInfo(parsedResume.personalInfo)
-                  }
-
-                  {/* Summary */}
-                  {parsedResume.summary && parsedResume.summary.trim() && 
-                    renderCollapsibleSection(
-                      "Professional Summary",
-                      <FileText size={24} className="text-purple-400" />,
-                      <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-700/30">
-                        <p className="text-slate-200 leading-relaxed text-lg">{parsedResume.summary.trim()}</p>
-                      </div>,
-                      "summary"
-                    )
-                  }
-
-                  {/* Experience */}
-                  {parsedResume.experience && parsedResume.experience.length > 0 && 
-                    renderCollapsibleSection(
-                      "Work Experience",
-                      <Briefcase size={24} className="text-purple-400" />,
-                      renderExperience(parsedResume.experience),
-                      "experience",
-                      parsedResume.experience.length
-                    )
-                  }
-
-                  {/* Education */}
-                  {parsedResume.education && parsedResume.education.length > 0 && 
-                    renderCollapsibleSection(
-                      "Education",
-                      <GraduationCap size={24} className="text-purple-400" />,
-                      renderEducation(parsedResume.education),
-                      "education",
-                      parsedResume.education.length
-                    )
-                  }
-
-                  {/* Skills */}
-                  {parsedResume.skills && parsedResume.skills.length > 0 && 
-                    renderCollapsibleSection(
-                      "Skills",
-                      <Star size={20} />,
-                      renderSkills(parsedResume.skills),
-                      "skills"
-                    )
-                  }
-
-                  {/* Projects */}
-                  {parsedResume.projects && parsedResume.projects.length > 0 && 
-                    renderCollapsibleSection(
-                      "Projects",
-                      <Code size={24} className="text-purple-400" />,
-                      renderProjects(parsedResume.projects),
-                      "projects",
-                      parsedResume.projects.length
-                    )
-                  }
-
-                  {/* Achievements */}
-                  {parsedResume.achievements && parsedResume.achievements.length > 0 && 
-                    renderCollapsibleSection(
-                      "Achievements",
-                      <Trophy size={24} className="text-purple-400" />,
-                      renderAchievements(parsedResume.achievements),
-                      "achievements",
-                      parsedResume.achievements.length
-                    )
-                  }
-
-                  {/* Certifications */}
-                  {parsedResume.certifications && parsedResume.certifications.length > 0 && 
-                    renderCollapsibleSection(
-                      "Certifications",
-                      <Award size={24} className="text-purple-400" />,
-                      renderCertifications(parsedResume.certifications),
-                      "certifications",
-                      parsedResume.certifications.length
-                    )
-                  }
-
-                  {/* Raw Data Fallback */}
-                  <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-8 rounded-2xl border border-slate-700/50 shadow-xl">
-                    <button
-                      onClick={() => toggleSection("rawData")}
-                      className="w-full flex items-center justify-between group hover:bg-slate-800/50 p-4 rounded-xl transition-all duration-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="bg-slate-600/20 p-3 rounded-xl group-hover:bg-slate-600/30 transition-colors">
-                          <FileText size={24} className="text-slate-400" />
-                        </div>
-                        <div className="text-left">
-                          <h3 className="text-2xl font-bold text-white group-hover:text-slate-200 transition-colors">
-                            Raw Extracted Data
-                          </h3>
-                          <p className="text-slate-400 text-sm">Original extracted text for debugging</p>
-                        </div>
-                      </div>
-                      <div className="bg-slate-700/50 p-2 rounded-lg group-hover:bg-slate-600/50 transition-colors">
-                        {expandedSections.rawData ? 
-                          <ChevronUp size={20} className="text-slate-400" /> : 
-                          <ChevronDown size={20} className="text-slate-400" />
-                        }
-                      </div>
-                    </button>
-                    
-                    {expandedSections.rawData && (
-                      <div className="mt-6">
-                        <div className="bg-slate-900/80 p-6 rounded-xl border border-slate-700/40">
-                          <pre className="whitespace-pre-wrap text-slate-300 text-sm leading-relaxed max-h-96 overflow-y-auto font-mono">
-                            {viewMode.app.extratedResume || "No raw data available"}
-                          </pre>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   const handleToggleApproved = async (appId) => {
     const token = getAuthToken();
@@ -1094,7 +852,6 @@ export default function Application() {
         throw new Error("Failed to update approval status");
       }
   
-      // Toggle locally
       setApplications((prev) =>
         prev.map((a) =>
           a.id === appId ? { ...a, approved: !a.approved } : a
@@ -1106,222 +863,473 @@ export default function Application() {
     }
   };
 
-  // Sort applications by score (highest first)
-const sortedApplications = [...applications].sort((a, b) => {
-  const scoreA = a.score || 0;
-  const scoreB = b.score || 0;
-  return scoreB - scoreA;
-});
+  // Filter and sort applications
+  const filteredApplications = applications.filter(app => {
+    const matchesSearch = app.user?.username?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+    const matchesFilter = filterStatus === "all" || 
+      (filterStatus === "approved" && app.approved) || 
+      (filterStatus === "pending" && !app.approved);
+    
+    return matchesSearch && matchesFilter;
+  });
 
-// 2. Add the feedback modal component (add this before the main return statement)
-const FeedbackModal = ({ feedback, candidateName, onClose }) => {
-  if (!feedback) return null;
+  const sortedApplications = [...filteredApplications].sort((a, b) => {
+    switch (sortBy) {
+      case "score":
+        return (b.score || 0) - (a.score || 0);
+      case "name":
+        return (a.user?.username || "").localeCompare(b.user?.username || "");
+      case "date":
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      default:
+        return (b.score || 0) - (a.score || 0);
+    }
+  });
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop with blur */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-md"
-        onClick={onClose}
-      ></div>
-      
-      {/* Modal Content */}
-      <div className="relative bg-gradient-to-br from-slate-800/95 to-slate-900/95 p-8 rounded-2xl border border-slate-700/50 shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-purple-600/20 p-3 rounded-xl">
-              <FileText size={24} className="text-purple-400" />
+  const FeedbackModal = ({ feedback, candidateName, onClose }) => {
+    if (!feedback) return null;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div 
+          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          onClick={onClose}
+        ></div>
+        
+        <div className="relative bg-white p-8 rounded-2xl border border-gray-200 shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-50 p-3 rounded-xl">
+                <FileText size={24} className="text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">Candidate Feedback</h3>
+                <p className="text-gray-600">{candidateName}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-2xl font-bold text-white">Candidate Feedback</h3>
-              <p className="text-slate-400">{candidateName}</p>
-            </div>
-          </div>
-          
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="bg-slate-700/50 hover:bg-slate-600/50 p-2 rounded-lg transition-all duration-200 group"
-          >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="20" 
-              height="20" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-              className="text-slate-400 group-hover:text-white transition-colors"
+            
+            <button
+              onClick={onClose}
+              className="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg transition-all duration-200 group"
             >
-              <path d="m18 6-12 12"/>
-              <path d="m6 6 12 12"/>
-            </svg>
-          </button>
-        </div>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="text-gray-600 group-hover:text-gray-900 transition-colors"
+              >
+                <path d="m18 6-12 12"/>
+                <path d="m6 6 12 12"/>
+              </svg>
+            </button>
+          </div>
 
-        {/* Feedback Content */}
-        <div className="bg-slate-900/80 p-6 rounded-xl border border-slate-700/40">
-          <div className="prose prose-invert max-w-none">
-            <p className="text-slate-200 leading-relaxed text-lg whitespace-pre-wrap">
-              {feedback || "No feedback provided by the candidate."}
-            </p>
+          <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+            <div className="prose prose-gray max-w-none">
+              <p className="text-gray-700 leading-relaxed text-lg whitespace-pre-wrap">
+                {feedback || "No feedback provided by the candidate."}
+              </p>
+            </div>
           </div>
         </div>
-
       </div>
-    </div>
-  );
-};
+    );
+  };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+          <span className="text-gray-700">Loading applications...</span>
+        </div>
+      </div>
+    );
+  }
 
+  if (viewMode) {
+    return (
+      <div className="min-h-screen bg-gray-50 text-gray-900 p-6 relative">
+        <button
+          onClick={() => setViewMode(null)}
+          className="absolute top-6 left-6 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl z-10"
+        >
+          <ArrowLeft size={18} /> Back to Applications
+        </button>
+
+        {viewMode.type === "resume" ? (
+          <div className="flex flex-col items-center mt-20">
+            <div className="bg-white p-6 rounded-xl border border-gray-200 mb-6 shadow-sm">
+              <h2 className="text-2xl font-bold text-indigo-600 text-center">
+                Resume
+              </h2>
+            </div>
+            <div className="w-full max-w-5xl bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+              <iframe
+                src={viewMode.app.resume}
+                title="Resume"
+                className="w-full h-[80vh] border-0 rounded-lg"
+              ></iframe>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-20 max-w-6xl mx-auto">
+            <div className="bg-white p-8 rounded-2xl border border-gray-200 mb-8 shadow-sm">
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                  Extracted Resume
+                </h2>
+                <p className="text-gray-600">
+                  Structured resume data for easy review and analysis
+                </p>
+              </div>
+            </div>
+
+            {(() => {
+              const parsedResume = parseExtractedResume(viewMode.app.extratedResume);
+              
+              if (!parsedResume) {
+                return (
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="bg-red-50 p-6 rounded-lg border border-red-200">
+                      <p className="text-red-600 text-center">No extracted data available or unable to parse resume content.</p>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-6">
+                  {parsedResume.personalInfo && Object.keys(parsedResume.personalInfo).length > 0 && 
+                    renderPersonalInfo(parsedResume.personalInfo)
+                  }
+
+                  {parsedResume.summary && parsedResume.summary.trim() && 
+                    renderCollapsibleSection(
+                      "Professional Summary",
+                      <FileText size={24} className="text-indigo-600" />,
+                      <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                        <p className="text-gray-700 leading-relaxed text-lg">{parsedResume.summary.trim()}</p>
+                      </div>,
+                      "summary"
+                    )
+                  }
+
+                  {parsedResume.experience && parsedResume.experience.length > 0 && 
+                    renderCollapsibleSection(
+                      "Work Experience",
+                      <Briefcase size={24} className="text-indigo-600" />,
+                      renderExperience(parsedResume.experience),
+                      "experience",
+                      parsedResume.experience.length
+                    )
+                  }
+
+                  {parsedResume.education && parsedResume.education.length > 0 && 
+                    renderCollapsibleSection(
+                      "Education",
+                      <GraduationCap size={24} className="text-indigo-600" />,
+                      renderEducation(parsedResume.education),
+                      "education",
+                      parsedResume.education.length
+                    )
+                  }
+
+                  {parsedResume.skills && parsedResume.skills.length > 0 && 
+                    renderCollapsibleSection(
+                      "Skills",
+                      <Star size={20} className="text-indigo-600" />,
+                      renderSkills(parsedResume.skills),
+                      "skills"
+                    )
+                  }
+
+                  {parsedResume.projects && parsedResume.projects.length > 0 && 
+                    renderCollapsibleSection(
+                      "Projects",
+                      <Code size={24} className="text-indigo-600" />,
+                      renderProjects(parsedResume.projects),
+                      "projects",
+                      parsedResume.projects.length
+                    )
+                  }
+
+                  {parsedResume.achievements && parsedResume.achievements.length > 0 && 
+                    renderCollapsibleSection(
+                      "Achievements",
+                      <Trophy size={24} className="text-indigo-600" />,
+                      renderAchievements(parsedResume.achievements),
+                      "achievements",
+                      parsedResume.achievements.length
+                    )
+                  }
+
+                  {parsedResume.certifications && parsedResume.certifications.length > 0 && 
+                    renderCollapsibleSection(
+                      "Certifications",
+                      <Award size={24} className="text-indigo-600" />,
+                      renderCertifications(parsedResume.certifications),
+                      "certifications",
+                      parsedResume.certifications.length
+                    )
+                  }
+
+                  <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                    <button
+                      onClick={() => toggleSection("rawData")}
+                      className="w-full flex items-center justify-between group hover:bg-gray-50 p-4 rounded-xl transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="bg-gray-100 p-3 rounded-xl group-hover:bg-gray-200 transition-colors">
+                          <FileText size={24} className="text-gray-600" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="text-2xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors">
+                            Raw Extracted Data
+                          </h3>
+                          <p className="text-gray-500 text-sm">Original extracted text for debugging</p>
+                        </div>
+                      </div>
+                      <div className="bg-gray-100 p-2 rounded-lg group-hover:bg-gray-200 transition-colors">
+                        {expandedSections.rawData ? 
+                          <ChevronUp size={20} className="text-gray-600" /> : 
+                          <ChevronDown size={20} className="text-gray-600" />
+                        }
+                      </div>
+                    </button>
+                    
+                    {expandedSections.rawData && (
+                      <div className="mt-6">
+                        <div className="bg-gray-800 p-6 rounded-xl border border-gray-300">
+                          <pre className="whitespace-pre-wrap text-gray-100 text-sm leading-relaxed max-h-96 overflow-y-auto font-mono">
+                            {viewMode.app.extratedResume || "No raw data available"}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+    );
+  }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      <div className="p-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="bg-purple-600 px-6 py-3 rounded-lg hover:bg-purple-700 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
-        >
-          <ArrowLeft size={18} /> Back to Dashboard
-        </button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft size={20} />
+              <span className="font-medium">Back to Dashboard</span>
+            </button>
+            
+            <div className="flex items-center gap-4">
+              <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
+                <Download size={20} />
+              </button>
+              <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
+                <Share2 size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="bg-slate-800/60 p-6 rounded-xl border border-slate-700/50 mb-8 shadow-lg">
-        <h1 className="text-3xl font-bold text-purple-300 text-center">
-            Applications 
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Hero Section */}
+        <div className="text-center mb-12 pt-8">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <FileText size={16} />
+            Application Review
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Review Candidate <span className="text-indigo-600">Applications</span>
           </h1>
-          <p className="text-slate-300 text-center mt-2">
-            Review and evaluate candidate applications
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Evaluate and manage candidate applications with AI-powered insights and structured data analysis.
           </p>
         </div>
 
-        {applications.length === 0 ? (
-  <div className="bg-slate-800/60 p-12 rounded-xl border border-slate-700/50 shadow-lg text-center">
-    <FileText size={48} className="mx-auto mb-4 text-slate-500" />
-    <p className="text-slate-400 text-xl">No applications found for this interview.</p>
-    <p className="text-slate-500 mt-2">Applications will appear here once candidates submit them.</p>
-  </div>
-) : (
-  <div className="space-y-4">
-    {/* Header */}
-    <div className="grid grid-cols-12 gap-4 items-center text-slate-300 font-medium">
-  <div className="col-span-1 text-center">#</div>
-  <div className="col-span-2">Candidate</div>
-  <div className="col-span-1 text-center">Score</div>
-  <div className="col-span-2 text-center">Feedback</div>
-  <div className="col-span-6 text-center">Actions</div>
-</div>
+        {/* Search and Filter Section */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search candidates..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
 
-    {/* Application List */}
-    {sortedApplications.map((app, index) => (
-      <div
-        key={app.id}
-        className="bg-slate-800/60 p-6 rounded-xl border border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-200 hover:border-purple-500/50"
-      >
-        <div className="grid grid-cols-12 gap-4 items-center">
-          {/* Rank */}
-          <div className="col-span-1 text-center">
-            <div className="bg-purple-600/20 text-purple-300 w-8 h-8 rounded-full flex items-center justify-center font-bold">
-              {index + 1}
+            {/* Filters */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter size={16} className="text-gray-500" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="all">All Applications</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="score">Sort by Score</option>
+                <option value="name">Sort by Name</option>
+                <option value="date">Sort by Date</option>
+              </select>
             </div>
           </div>
 
-          {/* Candidate Info */}
-<div className="col-span-2">
-  <div className="flex items-center gap-3">
-    <div className="bg-purple-600/20 p-2 rounded-lg">
-      <User size={20} className="text-purple-400" />
-    </div>
-    <div>
-      <button
-        onClick={() => handleProfileClick(app.user?.id)}
-        
-        className="text-lg font-semibold text-slate-200 hover:text-purple-300 transition-colors underline decoration-transparent hover:decoration-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {app.user?.username || "Anonymous"}
-      </button>
-    </div>
-  </div>
-</div>
-
-          {/* Score */}
-          <div className="col-span-1 text-center">
-            <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border ${getScoreBackgroundColor(app.score || 0)}`}>
-              <Star size={16} className={getScoreColor(app.score || 0)} />
-              <span className={`font-bold text-lg ${getScoreColor(app.score || 0)}`}>
-                {app.score?.toFixed(1) || "0.0"}
-              </span>
+          {/* Stats */}
+          <div className="flex items-center gap-6 mt-4 pt-4 border-t border-gray-100">
+            <div className="text-sm text-gray-600">
+              <span className="font-semibold text-gray-900">{sortedApplications.length}</span> applications found
             </div>
-          </div>
-
-          {/* Feedback */}
-          <div className="col-span-2 text-center">
-  <button
-    onClick={() => setFeedbackModal({
-      feedback: app.feedback,
-      candidateName: app.user?.username || "Anonymous"
-    })}
-    className="bg-indigo-600/80 hover:bg-indigo-600 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg mx-auto"
-  >
-    <FileText size={14} />
-    Feedback
-  </button>
-</div>
-
-          {/* Actions */}
-          <div className="col-span-6">
-  <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => setViewMode({ type: "resume", app })}
-                className="bg-blue-600 px-3 py-2 rounded-lg text-sm hover:bg-blue-700 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
-              >
-                <Eye size={14} />
-                Resume
-              </button>
-
-              <button
-                onClick={() => setViewMode({ type: "extracted", app })}
-                className="bg-green-600 px-3 py-2 rounded-lg text-sm hover:bg-green-700 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
-              >
-                <FileText size={14} />
-                Data
-              </button>
-
-              {app.approved ? (
-                <button
-                  onClick={() => handleToggleApproved(app.id)}
-                  className="bg-red-600 px-3 py-2 rounded-lg text-sm hover:bg-red-700 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
-                >
-                  Disapprove
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleToggleApproved(app.id)}
-                  className="bg-emerald-600 px-3 py-2 rounded-lg text-sm hover:bg-emerald-700 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
-                >
-                  Approve
-                </button>
-              )}
+            <div className="text-sm text-gray-600">
+              <span className="font-semibold text-emerald-600">{sortedApplications.filter(app => app.approved).length}</span> approved
+            </div>
+            <div className="text-sm text-gray-600">
+              <span className="font-semibold text-amber-600">{sortedApplications.filter(app => !app.approved).length}</span> pending
             </div>
           </div>
         </div>
+
+        {applications.length === 0 ? (
+          <div className="bg-white p-12 rounded-2xl border border-gray-200 shadow-sm text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText size={32} className="text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No applications found</h3>
+            <p className="text-gray-600">Applications will appear here once candidates submit them.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {sortedApplications.map((app, index) => (
+              <div
+                key={app.id}
+                className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 hover:border-indigo-200"
+              >
+                <div className="flex items-center justify-between">
+                  {/* Candidate Info */}
+                  <div className="flex items-center gap-4">
+                    <div className="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">
+                      {index + 1}
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center">
+                        <User size={20} className="text-white" />
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => handleProfileClick(app.user?.id)}
+                          className="text-lg font-semibold text-gray-900 hover:text-indigo-600 transition-colors"
+                        >
+                          {app.user?.username || "Anonymous"}
+                        </button>
+                        <p className="text-sm text-gray-500">Candidate</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Score and Actions */}
+                  <div className="flex items-center gap-6">
+                    {/* Score */}
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${getScoreBackgroundColor(app.score || 0)}`}>
+                      <Star size={16} className={getScoreColor(app.score || 0)} />
+                      <span className={`font-bold text-lg ${getScoreColor(app.score || 0)}`}>
+                        {app.score?.toFixed(1) || "0.0"}
+                      </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setFeedbackModal({
+                          feedback: app.feedback,
+                          candidateName: app.user?.username || "Anonymous"
+                        })}
+                        className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2"
+                      >
+                        <FileText size={14} />
+                        Feedback
+                      </button>
+
+                      <button
+                        onClick={() => setViewMode({ type: "resume", app })}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2"
+                      >
+                        <Eye size={14} />
+                        Resume
+                      </button>
+
+                      <button
+                        onClick={() => setViewMode({ type: "extracted", app })}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2"
+                      >
+                        <FileText size={14} />
+                        Data
+                      </button>
+
+                      {app.approved ? (
+                        <button
+                          onClick={() => handleToggleApproved(app.id)}
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                        >
+                          Disapprove
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleToggleApproved(app.id)}
+                          className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                        >
+                          Approve
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    ))}
-  </div>
-)}
-      </div>
+
       {/* Feedback Modal */}
-{feedbackModal && (
-  <FeedbackModal
-    feedback={feedbackModal.feedback}
-    candidateName={feedbackModal.candidateName}
-    onClose={() => setFeedbackModal(null)}
-  />
-)}
+      {feedbackModal && (
+        <FeedbackModal
+          feedback={feedbackModal.feedback}
+          candidateName={feedbackModal.candidateName}
+          onClose={() => setFeedbackModal(null)}
+        />
+      )}
     </div>
   );
 }
