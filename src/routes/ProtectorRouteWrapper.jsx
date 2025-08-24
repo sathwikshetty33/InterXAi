@@ -501,9 +501,6 @@
 
 
 
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -519,7 +516,6 @@ const ProctoredRouteWrapper = ({ children }) => {
   const [cameraActive, setCameraActive] = useState(false);
   const [lastDetectionTime, setLastDetectionTime] = useState(null);
   const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
-  
   const [status, setStatus] = useState({
     face: { text: 'Face: Detecting...', type: 'safe' },
     gaze: { text: 'Gaze: Monitoring...', type: 'safe' },
@@ -1157,7 +1153,7 @@ const ProctoredRouteWrapper = ({ children }) => {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('contextmenu', handleContextMenu);
     window.addEventListener('beforeunload', handleBeforeUnload);
-
+   
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('contextmenu', handleContextMenu);
@@ -1165,7 +1161,13 @@ const ProctoredRouteWrapper = ({ children }) => {
     };
   }, [isMonitoring]);
 
-
+  const navigate=useNavigate();
+  useEffect(()=>{
+    if(violations>20)
+    {
+      navigate("/");
+    }
+  },[violations]);
   // Error state
   if (error) {
     return (

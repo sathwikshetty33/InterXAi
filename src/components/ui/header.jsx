@@ -93,10 +93,6 @@ const baseUrl=import.meta.env.VITE_API_URL;
             How It Works
           </a>
 
-          <a href="/resources" className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200">
-            Resources
-          </a>
-
           {/* -------- OWNER -------- */}
           {viewerType === 'owner' && (
             <>

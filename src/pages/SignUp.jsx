@@ -420,7 +420,7 @@ const SignUp = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${baseUrl}register/`, {
+      const response = await fetch(`${baseUrl}/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -458,7 +458,7 @@ const SignUp = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${baseUrl}verify-email/`, {
+      const response = await fetch(`${baseUrl}/verify-email/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -503,7 +503,7 @@ const SignUp = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${baseUrl}resend-code/`, {
+      const response = await fetch(`${baseUrl}/resend-code/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
