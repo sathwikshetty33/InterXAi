@@ -365,9 +365,7 @@ const parseProjectName = (projectText) => {
                       <th className="px-8 py-4 text-left text-sm font-semibold text-purple-600 uppercase tracking-wider">
                         Start Time
                       </th>
-                      <th className="px-8 py-4 text-left text-sm font-semibold text-purple-600 uppercase tracking-wider">
-                        End Time
-                      </th>
+
                       <th className="px-8 py-4 text-left text-sm font-semibold text-purple-600 uppercase tracking-wider">
                         Actions
                       </th>
@@ -425,14 +423,6 @@ const parseProjectName = (projectText) => {
                           <div className="flex items-center">
                             <Calendar className="w-5 h-5 mr-2 text-purple-500" />
                             {formatDateTime(candidate.start_time)}
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-600">
-                          <div className="flex items-center">
-                            <Clock className="w-5 h-5 mr-2 text-purple-500" />
-                            {candidate.end_time
-                              ? formatDateTime(candidate.end_time)
-                              : "In Progress"}
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap text-sm font-medium">
