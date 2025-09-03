@@ -516,7 +516,7 @@ class SessionDsaQuestions(APIView):
             dsa_interaction.question=request.data.get("question", "")
             dsa_interaction.code=request.data.get("code")
             dsa_interaction.save()
-            dsa = DSAInteractions.objects.filter(session=session)
+            dsa = DSAInteractions.objects.filter(session=session,score__isnull=False)
             score = 0
             for d in dsa:
                 score= score + d.score
