@@ -470,12 +470,30 @@ class SessionDsaQuestions(APIView):
 
     def get(self, request, id):
         try:
-            session = InterviewSession.objects.get(id=id)
+            try:
+                session = InterviewSession.objects.get(id=id)
+            except InterviewSession.DoesNotExist:
+                return Response({"error": "session not found"}, status=status.HTTP_404_NOT_FOUND)
+
             interview = Custominterviews.objects.get(id=session.Application.interview.id)
 
             dsa_questions = DsaTopics.objects.filter(interview=interview)
+            dsa_topics = DsaTopics.objects.filter(interview=interview)
+            print(dsa_topics)
+            created_interactions = []
+            for topic in dsa_topics:
+                # ✅ Create a DSAInteraction for each topic
+                interaction, created = DSAInteractions.objects.get_or_create(
+                    session=session,
+                    topic=topic,
+                    defaults={
+                        "created_at": timezone.now()
+                    }
+                )
+                created_interactions.append(interaction)
+            print(created_interactions)
             serializer = DSAQuestionsSerializer(dsa_questions, many=True)
-            print(serializer.data)
+            
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Custominterviews.DoesNotExist:
@@ -491,16 +509,14 @@ class SessionDsaQuestions(APIView):
             return Response({"error": "DSA Topic not found"}, status=status.HTTP_404_NOT_FOUND)
         try:
             dsa_interaction = DSAInteractions.objects.get(session=session, topic=dsa_topic)
-            if dsa_interaction:
-                return Response({"error": "DSA interaction already exists for this session and topic"}, status=status.HTTP_400_BAD_REQUEST)
+            dsa_interaction.score= request.data.get("score")
+            dsa_interaction.question=request.data.get("question", "")
+            dsa_interaction.code=request.data.get("code")
+            dsa_interaction.save()
         except DSAInteractions.DoesNotExist:
-            dsa_interaction = DSAInteractions.objects.create(
-                session=session,
-                topic=dsa_topic,
-                question=request.data.get("question", ""),
-                score=request.data.get("score"),
-                code=request.data.get("code"),
-        )
+            
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message": "DSA interaction created", "id": dsa_interaction.id}, status=status.HTTP_201_CREATED)
