@@ -612,10 +612,21 @@ Use this exact structure inside the `extracted_standardized_resume` string:
 
 ---
 
+🔍 **Input Context**
+
+Below are the details you must use for strict evaluation:
+
+- **Job Title:** {job_title}
+- **Job Description:** {job_description}
+- **Required Experience:** {experience} years
+- **Resume Text:** {resume_text}
+
+---
+
 ✅ **Example JSON Output (do not copy verbatim):**
 
 {{
-"extracted_standardized_resume": "### Personal Details\n- Name: Sarah Chen\n- Email: sarah.chen@email.com\n- Phone: +1-555-0123\n- Location: San Francisco, CA\n\n### Skills\n- Machine Learning, Python, TensorFlow, AWS, Kubernetes\n\n### Experience\n- **Google** – Senior Software Engineer (2021 – 2024)\n - Led ML infrastructure serving 2B+ users daily\n- **Meta** – Software Engineer (2019 – 2021)\n - Built recommendation systems for Instagram feed\n- **Airbnb** – Junior Software Engineer (2018 – 2019)\n - Developed search ranking algorithms\n\n### Education\n- MS Computer Science – Stanford University (2018)\n- BS Computer Science – UC Berkeley (2016)\n\n### Certifications\n- AWS Machine Learning Specialty\n- Google Cloud Professional ML Engineer\n\n### Projects\n- **Open Source ML Library**: 5K+ GitHub stars, adopted by major companies\n\n### Achievements\n- Filed 2 patents in ML optimization\n- Promoted twice at Google in 3 years",
+"extracted_standardized_resume": "### Personal Details\\n- Name: Sarah Chen\\n- Email: sarah.chen@email.com\\n- Phone: +1-555-0123\\n- Location: San Francisco, CA\\n\\n### Skills\\n- Machine Learning, Python, TensorFlow, AWS, Kubernetes\\n\\n### Experience\\n- **Google** – Senior Software Engineer (2021 – 2024)\\n - Led ML infrastructure serving 2B+ users daily\\n- **Meta** – Software Engineer (2019 – 2021)\\n - Built recommendation systems for Instagram feed\\n- **Airbnb** – Junior Software Engineer (2018 – 2019)\\n - Developed search ranking algorithms\\n\\n### Education\\n- MS Computer Science – Stanford University (2018)\\n- BS Computer Science – UC Berkeley (2016)\\n\\n### Certifications\\n- AWS Machine Learning Specialty\\n- Google Cloud Professional ML Engineer\\n\\n### Projects\\n- **Open Source ML Library**: 5K+ GitHub stars, adopted by major companies\\n\\n### Achievements\\n- Filed 2 patents in ML optimization\\n- Promoted twice at Google in 3 years",
 "score": 8.7,
 "shortlisting_decision": true,
 "feedback": "Exceptional candidate with 6 years experience (meets 5+ requirement). Perfect career progression through Tier 1 companies (Airbnb→Meta→Google) with increasing responsibilities. Strong ML skills matching job requirements. Top university background adds credibility.",
