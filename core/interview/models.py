@@ -72,7 +72,7 @@ class InterviewSession(models.Model):
     recommendation = models.CharField(max_length=50, blank=True, null=True)
     strengths = models.TextField(blank=True, null=True)
     def __str__(self):
-        return f'{self.Application.user.username}-{self.start_time}'
+        return f'{self.id}---{self.Application.user.username}-{self.start_time}'
     
 class Interaction(models.Model):
     session = models.ForeignKey(InterviewSession, on_delete=models.CASCADE,related_name="session")
