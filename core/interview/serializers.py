@@ -220,6 +220,7 @@ class FollowUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = FollowUpQuestions
         fields = ["question","answer"]  # Fixed typo: was "fileds"
+
 class DsaSessionSerializer(serializers.ModelSerializer):
     topic = DsaTopicSerializer(read_only=True)
 
@@ -227,6 +228,7 @@ class DsaSessionSerializer(serializers.ModelSerializer):
         model = DSAInteractions
         fields = ["id", "session", "topic", "question", "code", "score", "created_at"]
         read_only_fields = ["id", "created_at"]
+
 class InteractionSerializer(serializers.ModelSerializer):
     Customquestion = CustomQuestionSerializer()  # Fixed: was "CustomQuestion"
     followups = FollowUpSerializer(many=True, source='interaction')
@@ -234,11 +236,19 @@ class InteractionSerializer(serializers.ModelSerializer):
         model = Interaction
         fields = ["Customquestion","followups","score","feedback"]  # Fixed field name
 
+# New serializer for resumeconvo model
+class ResumeConvoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = resumeconvo
+        fields = ["id", "question", "expected_answer", "answer", "score", "feedback"]
+        read_only_fields = ["id"]
+
 class LeaderBoardSerializer(serializers.ModelSerializer):
     Application = ApplicationSerializer(read_only=True)
     user = UserSerializer(read_only=True)
     session = InteractionSerializer(many=True)  # Fixed: should be many=True for related_name="session"
     dsa = DsaSessionSerializer(many=True, source='dsa_sessions')
+    resume_conversations = ResumeConvoSerializer(many=True, source='interview_session')  # Add resume conversations
 
     class Meta:
         model = InterviewSession
@@ -248,13 +258,17 @@ class LeaderBoardSerializer(serializers.ModelSerializer):
             "end_time",
             "status",
             "feedback",
-            "score",
+            "Devscore",
+            "Resumescore",
+            "confidenceScore",
+            "DsaScore",
             "recommendation",
             "strengths",
             "Application",
             "user",
             "session",
             "dsa",
+            "resume_conversations",  # Add the new field
         ]
 
 class DSAQuestionsSerializer(serializers.ModelSerializer):

@@ -133,8 +133,11 @@ Keep feedback and reasoning concise but informative (max 200 words each).
     """),
     ("human", "Please evaluate this interview response.")
 ])
+
 follow_up_decider = ChatPromptTemplate.from_messages([
     ("system", """You are an expert technical interviewer evaluating candidate responses.
+
+**CRITICAL OVERRIDE RULE**: If the candidate's final response contains any variation of "I don't know", "IDK", "skip", "not sure", "not familiar", or similar - IMMEDIATELY return {{"needs_followup": false, "followup_question": null}} without any further analysis.
 
 Interview Context:
 - Position: {position}
@@ -146,6 +149,26 @@ Conversation History:
 Expected Answer: {expected_answer}
 
 STEP-BY-STEP EVALUATION PROCESS:
+
+STEP 0: MANDATORY SKIP/UNKNOWN CHECK (EXECUTE FIRST - NO EXCEPTIONS)
+- BEFORE doing ANY other analysis, examine ONLY the candidate's FINAL/LAST response in the conversation
+- If the candidate's final response contains ANY of these patterns (case-insensitive):
+  * "don't know" or "dont know"
+  * "idk" or "IDK" 
+  * "not sure"
+  * "skip" (in context of wanting to skip)
+  * "move on" 
+  * "pass on this"
+  * "not familiar"
+  * "no idea"
+  * "no experience"
+  * "can't answer"
+  * "don't remember"
+  * Very short responses like just "no" or "nope" after a technical question
+  * Any phrase indicating lack of knowledge or desire to avoid the question
+- **MANDATORY RULE**: If ANY of these patterns are found, IMMEDIATELY stop all evaluation and return:
+  {{"needs_followup": false, "followup_question": null}}
+- Do NOT proceed to other steps if this condition is met
 
 STEP 1: IDENTIFY THE MAIN QUESTION
 - The first question in the conversation history is the main question
@@ -172,24 +195,42 @@ STEP 5: MAKE FINAL DECISION
 - needs_followup = false if:
   1. All expected answer elements are covered in current response OR
   2. All missing elements have been asked about in previous questions OR
-  3. Any new question would repeat or be too similar to previous questions
+  3. Any new question would repeat or be too similar to previous questions OR
+  4. Candidate indicated they don't know or want to skip (from Step 0)
 
 CRITICAL RULES:
-1. **ZERO TOLERANCE FOR REPETITION**: If any aspect of your proposed question was covered in previous questions, set needs_followup = false
-2. **EXPECTED ANSWER ONLY**: Only ask about elements explicitly present in the expected answer
-3. **CONVERSATION HISTORY IS BINDING**: Treat all previous questions as exhausted topics - never revisit them
-4. **SIMILARITY CHECK**: If your question is conceptually similar to any previous question, abandon it
+1. **MANDATORY SKIP DETECTION**: Step 0 is NON-NEGOTIABLE - if candidate shows any sign of not knowing or wanting to skip, immediately return needs_followup = false
+2. **ZERO TOLERANCE FOR REPETITION**: If any aspect of your proposed question was covered in previous questions, set needs_followup = false
+3. **EXPECTED ANSWER ONLY**: Only ask about elements explicitly present in the expected answer
+4. **CONVERSATION HISTORY IS BINDING**: Treat all previous questions as exhausted topics - never revisit them
+5. **SIMILARITY CHECK**: If your question is conceptually similar to any previous question, abandon it
 
 RESPONSE FORMAT - You must respond with ONLY a valid JSON object:
 {{"needs_followup": true or false, "followup_question": "your question here" or null}}
+
+EXAMPLES OF SKIP/UNKNOWN RESPONSES THAT SHOULD STOP FOLLOW-UPS:
+- "I don't know"
+- "IDK" or "idk"
+- "I'm not sure"
+- "Let's skip this"
+- "Can we move on?"
+- "I don't have experience with this"
+- "I'm not familiar with that"
+- "Skip this question"
+- "I'd rather not answer this"
 
 EXAMPLES OF WHAT NOT TO DO:
 - If data sharding was asked about before → DON'T ask about data sharding again
 - If service discovery was asked about before → DON'T ask about service discovery again  
 - If implementation details were asked before → DON'T ask for implementation details again
 - If any topic was mentioned in previous questions → DON'T ask about that topic again
+- If candidate said "I don't know" → DON'T ask follow-up questions
 
 DECISION TREE:
+0. **MANDATORY FIRST CHECK**: Does candidate's FINAL response contain "don't know", "idk", "skip", "not sure", "not familiar", "no idea", or similar?
+   - YES → **IMMEDIATELY STOP** → {{"needs_followup": false, "followup_question": null}}
+   - NO → Go to 1
+
 1. Are there elements in expected answer missing from current response? 
    - NO → {{"needs_followup": false, "followup_question": null}}
    - YES → Go to 2
@@ -205,12 +246,22 @@ DECISION TREE:
 """),
     ("human", "Please evaluate this interview response and return only the JSON object.")
 ])
-    # Context builder prompt
+
 context_prompt = ChatPromptTemplate.from_messages([
         ("system", """Summarize the interview conversation so far for context. 
         Include key points discussed, candidate's strengths/weaknesses observed, 
         and areas that need more exploration.
         
+        Keep it concise but informative for the next evaluation."""),
+        ("human", "{conversation_history}")
+    ])
+
+resume_extraction_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """
+You are a strict resume parser and evaluator with high standards for job-role matching.
+
         Keep it concise but informative for the next evaluation."""),
         ("human", "{conversation_history}")
     ])
@@ -365,3 +416,85 @@ Below are the details you must use for strict evaluation:
         "Please process the resume and respond with valid JSON only."
     )
 ])
+
+resume_question_generation_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """
+You are an expert technical interviewer who generates relevant interview questions based on a candidate's resume and the job requirements.
+
+Your task is to analyze the candidate's projects, experience, and skills from their standardized resume, then generate technical questions that would assess their suitability for the specific job role.
+
+**IMPORTANT OUTPUT FORMAT:**
+- Generate exactly 2 question-answer pairs
+- Return as a flat list with alternating questions and answers: [Question1, Answer1, Question2, Answer2]
+- Questions should be challenging but fair based on their resume
+- Answers should be comprehensive and demonstrate expected knowledge level
+
+**QUESTION GENERATION STRATEGY:**
+
+1. **Project-Focused Questions (Priority):**
+   - Deep dive into specific projects mentioned in their resume
+   - Ask about technical challenges, architecture decisions, implementation details
+   - Focus on technologies and frameworks they claim to have used
+
+2. **Experience-Based Questions:**
+   - Questions related to their work experience and responsibilities
+   - Scenario-based questions relevant to the job role
+   - Questions about best practices in their domain
+
+3. **Skill Validation Questions:**
+   - Technical questions that validate skills listed in resume
+   - Problem-solving questions relevant to the job requirements
+   - Questions about tools, technologies, and methodologies they mention
+
+**QUESTION DIFFICULTY LEVELS:**
+- **For 0-2 years experience:** Focus on fundamentals, basic project implementation, learning ability
+- **For 3-5 years experience:** Intermediate concepts, system design basics, project leadership
+- **For 5+ years experience:** Advanced topics, architecture decisions, team leadership, complex problem solving
+
+**ANSWER QUALITY STANDARDS:**
+- Answers should reflect the expected knowledge level for someone with their experience
+- Include technical details, best practices, and real-world considerations
+- Answers should be 3-5 sentences long with specific examples when relevant
+- Demonstrate both theoretical knowledge and practical application
+
+**QUESTION CATEGORIES TO CONSIDER:**
+1. **Technical Implementation:** "How did you implement [specific feature] in [project name]?"
+2. **Problem Solving:** "What was the biggest technical challenge in [project] and how did you solve it?"
+3. **Architecture & Design:** "Explain the architecture you chose for [project] and why?"
+4. **Technology Deep-dive:** "How did you use [specific technology] in your projects?"
+5. **Best Practices:** "What testing/deployment strategies did you follow in [project]?"
+6. **Scalability & Performance:** "How would you scale [project] to handle more users/data?"
+
+**CONTEXT FOR EVALUATION:**
+- **Job Title:** {job_title}
+- **Job Description:** {job_description}
+- **Required Experience:** {experience} years
+- **Candidate's Resume:** {extracted_standardized_resume}
+
+**EXAMPLE OUTPUT FORMAT (do not copy verbatim):**
+[
+"Can you walk me through the architecture and key technical decisions you made while building the e-commerce platform mentioned in your resume?",
+"I designed a microservices architecture using Node.js and Express for the backend APIs, with separate services for user management, product catalog, and order processing. I used MongoDB for flexible product data storage and Redis for session management and caching. The frontend was built with React and integrated with Stripe for payment processing. I chose this architecture for scalability and maintainability, allowing different teams to work on different services independently.",
+"What was the most challenging technical problem you encountered in your inventory management system project, and how did you solve it?",
+"The biggest challenge was handling real-time inventory updates across multiple sales channels while preventing overselling. I implemented a distributed locking mechanism using Redis to ensure atomic inventory operations and built a message queue system using RabbitMQ to handle high-volume updates. I also added database triggers for consistency checks and implemented a reconciliation service that runs daily to catch any discrepancies. This solution reduced inventory conflicts by 95% and improved system reliability."
+]
+
+**CRITICAL INSTRUCTIONS:**
+- Generate questions that are directly tied to their resume content
+- Ensure questions are appropriate for the job role and experience level
+- Make answers detailed enough to show competency but realistic for their background
+- Focus on projects and experiences they've actually mentioned
+- Questions should help assess if they can handle the responsibilities in the job description
+- Return exactly 4 items in the list: [Question1, Answer1, Question2, Answer2]
+- Do not include any text outside the list format
+- Questions should be specific, not generic
+"""
+    ),
+    (
+        "human",
+        "Please generate 2 relevant technical question-answer pairs based on the resume and job requirements."
+    )
+])
+

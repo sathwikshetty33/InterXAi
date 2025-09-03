@@ -41,6 +41,7 @@ class Application(models.Model):
     score = models.FloatField(default=0)
     shortlisting_decision = models.BooleanField(default=False)
     feedback = models.TextField(blank=True, null=True)
+    github_score = models.FloatField(blank=True, null=True)
     def __str__(self):
         return f'{self.user.username}-{self.interview.org.orgname}'
 class Customconversation(models.Model):
@@ -63,7 +64,10 @@ class InterviewSession(models.Model):
     current_question_index = models.IntegerField(default=0)
     status = models.CharField(max_length=20, choices=[('scheduled', 'Scheduled'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),('cheated','cheated'),('ongoing','Ongoing')], default='scheduled')
     feedback = models.TextField(blank=True, null=True)
-    score = models.FloatField(blank=True, null=True)
+    Devscore = models.FloatField(blank=True, null=True)
+    Resumescore = models.FloatField(blank=True, null=True)
+    confidenceScore= models.FloatField(blank=True,null=True)
+    DsaScore = models.FloatField(blank=True, null=True)
     recommendation = models.CharField(max_length=50, blank=True, null=True)
     strengths = models.TextField(blank=True, null=True)
     def __str__(self):
@@ -107,12 +111,11 @@ class leaderBoard(models.Model):
         return f'{self.Application.user.username}-{self.Score}'
 
 class resumeconvo(models.Model):
-    Application = models.ForeignKey(Application,on_delete=models.CASCADE)
-    time = models.DateTimeField(auto_now_add=True)
-class resquestions(models.Model):
-    convo = models.ForeignKey(resumeconvo, on_delete=models.CASCADE, db_index=True, default=1)
-    user = models.CharField(max_length=100, default="user")
-    question = models.TextField(default="Default question text")
-    created_at = models.DateTimeField(auto_now_add=True)
+    session = models.ForeignKey(InterviewSession,on_delete=models.CASCADE, related_name="interview_session",blank=True,null=True)
+    question = models.TextField(blank=True,null=True)
+    expected_answer = models.TextField(blank=True,null=True)
+    answer = models.TextField(blank=True,null=True)
+    score = models.FloatField(blank=True,null=True)
+    feedback = models.TextField(blank=True,null=True)
     def __str__(self):
-        return f'{self.convo.Application.user.username}-{self.id}'
+        return f'{self.session.id}'

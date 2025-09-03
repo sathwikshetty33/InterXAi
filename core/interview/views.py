@@ -15,6 +15,7 @@ from utils.ResumeExtractor import ResumeExtractor
 from utils.Evaluator import Evaluator
 from utils.FinalEvaluator import FinalEvaluator
 from utils.FollowUpdecider import FollowUpDecider
+from utils.resumeQuestiongeneratorAgent import ResumeQuestionGenerator
 import requests
 from PyPDF2 import PdfReader
 from django.core.files.base import ContentFile
@@ -429,7 +430,10 @@ class LeaderBoardView(APIView):
     authentication_classes = [TokenAuthentication]
 
     def get(self, request, id):
-        interview = Custominterviews.objects.get(id=id)
+        try:
+            interview = Custominterviews.objects.get(id=id)
+        except Custominterviews.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         if request.user != interview.org.org:
             return Response({"error": "You are not authorized to view this leaderboard"}, status=status.HTTP_403_FORBIDDEN)
 
@@ -500,3 +504,81 @@ class SessionDsaQuestions(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message": "DSA interaction created", "id": dsa_interaction.id}, status=status.HTTP_201_CREATED)
+
+
+class resumeQuestion(APIView):
+    def post(self, request, id):
+        try:
+            session = InterviewSession.objects.get(id=id)
+        except InterviewSession.DoesNotExist:
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+        if not session.Application.interview.ask_questions_on_resume:
+            return Response({
+                "completed" : True
+            }, status=status.HTTP_200_OK)
+        # Check if a resumeconvo already exists for this session
+        existing_convo = resumeconvo.objects.filter(session=session).first()
+        if existing_convo:
+            # ✅ Get first unanswered convo for this session
+            unanswered_convo = resumeconvo.objects.filter(session=session, answer__isnull=True).first()
+            if not unanswered_convo:
+                return Response({"compeletd": True}, status=status.HTTP_200_OK)
+            ans = request.data.get("answer")
+            # Build EvaluationRequest
+            application = session.Application
+            eval_request = EvaluationRequest(
+                position=application.interview.post,
+                experience=application.interview.experience,
+                question=unanswered_convo.question,
+                conversation_context=[
+                    f"Q: {unanswered_convo.question}, A: {ans or ''}" 
+                    
+                ],
+                expected_answer=unanswered_convo.expected_answer
+            )
+
+            # Call evaluator
+            evaluator = Evaluator()
+            eval_result = evaluator.evaluate(eval_request)
+            print(eval_result)
+            unanswered_convo.score=eval_result.score
+            unanswered_convo.answer=ans
+            unanswered_convo.feedback=eval_result.feedback
+            unanswered_convo.save()
+            unanswered_convo2 = resumeconvo.objects.filter(session=session, answer__isnull=True).first()
+            if unanswered_convo2:
+                return Response({
+                    "completed" : False,
+                    "question": unanswered_convo2.question,
+                })
+            convos = resumeconvo.objects.filter(session=session)
+            score = 0
+            for c in convos:
+                score+=c.score
+            score=score/2
+            session.Resumescore=score
+            session.save()
+            return Response({
+                "completed" : True
+            }, status=status.HTTP_200_OK)
+
+        # ✅ No convo yet → generate new questions
+        application = session.Application
+        req = questionGenerationRequest(
+            extracted_standardized_resume=application.extratedResume,
+            job_title=application.interview.post,
+            job_description=application.interview.desc,
+            experience=application.interview.experience,
+        )
+
+        extractor = ResumeQuestionGenerator()
+        result = extractor.evaluate(req)
+
+        # result is ResumeQuestionResponse → access extractedQAndA
+        convo1 = resumeconvo.objects.create(session=session, question=result[0], expected_answer=result[1])
+        convo2 = resumeconvo.objects.create(session=session, question=result[2], expected_answer=result[3])
+
+        return Response({
+            "completed" : False,
+            "question": convo1.question
+        }, status=status.HTTP_201_CREATED)

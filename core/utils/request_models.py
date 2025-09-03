@@ -50,3 +50,11 @@ class resumeExtractionResponse(BaseModel):
         description="Decision on whether to shortlist the candidate based on the extracted resume and job description"
     )
     feedback: str = Field(description="Feedback on the extracted resume")
+class questionGenerationRequest(BaseModel):
+    extracted_standardized_resume: str = Field(description="The standardized resume extracted from the resume text")
+    job_title : str = Field(description="The job title for which the resume is being extracted")
+    job_description: str = Field(description="The job description for the position")
+    experience: int = Field(description="The experience level required for the position") 
+
+class ResumeQuestionResponse(BaseModel):
+    extractedQAndA: List[str] = Field(description="List containing alternating questions and answers (Q1, A1, Q2, A2, etc.)")
