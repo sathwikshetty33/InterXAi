@@ -516,19 +516,20 @@ class SessionDsaQuestions(APIView):
             dsa_interaction.question=request.data.get("question", "")
             dsa_interaction.code=request.data.get("code")
             dsa_interaction.save()
+            dsa = DSAInteractions.objects.filter(session=session)
+            score = 0
+            for d in dsa:
+                score= score + d.score
+            score = score/len(dsa)
+            session.DsaScore=score
+            session.save()
         except DSAInteractions.DoesNotExist:
             
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        dsa = DSAInteractions.objects.filter(session=session)
-        score = 0
-        for d in dsa:
-            score+=d.score
-        score = score/len(dsa)
-        session.DsaScore=score
-        session.save()
+        
         return Response({"message": "DSA interaction created", "id": dsa_interaction.id}, status=status.HTTP_201_CREATED)
 
 
