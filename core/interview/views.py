@@ -363,6 +363,7 @@ class ApplicationView(APIView):
             extracted_text = ""
             for page in pdf_reader.pages:
                 extracted_text += page.extract_text() or ""
+                print(extracted_text)
         except Exception as e:
             return Response({"error": f"Failed to process PDF: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -372,6 +373,7 @@ class ApplicationView(APIView):
             application = serializer.save(
                 user=request.user,
                 interview=interview,
+                
             )
             req = resumeExtractionRequest(
                 resume_text=extracted_text,
@@ -383,6 +385,7 @@ class ApplicationView(APIView):
             try:
                 response = llm.evaluate(req)
                 print("Resume extraction response:", response)
+                rawResume=extracted_text
                 application.resume = resume_url
                 application.extratedResume = response.extracted_standardized_resume
                 application.score = response.score

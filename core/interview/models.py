@@ -36,6 +36,7 @@ class Application(models.Model):
     interview = models.ForeignKey(Custominterviews, on_delete=models.CASCADE, related_name='applications')
     approved = models.BooleanField(default=False)
     resume = models.CharField(max_length=255, blank=True, null=True)
+    rawResume = models.TextField(blank=True,null=True)
     applied_at = models.DateTimeField(auto_now_add=True,blank=True, null=True)
     extratedResume = models.TextField(blank=True,null=True)
     score = models.FloatField(default=0)
