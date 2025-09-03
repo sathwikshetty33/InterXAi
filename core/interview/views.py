@@ -294,7 +294,7 @@ class InterviewSessionView(APIView):
             final_evaluation = llm.evaluate(req)
             
             # Save final evaluation to session
-            session.score = final_evaluation.overall_score
+            session.Devscore = final_evaluation.overall_score
             session.feedback = final_evaluation.overall_feedback
             session.strengths = final_evaluation.strengths
             session.recommendation = final_evaluation.recommendation

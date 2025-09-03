@@ -68,6 +68,7 @@ class InterviewSession(models.Model):
     Resumescore = models.FloatField(blank=True, null=True)
     confidenceScore= models.FloatField(blank=True,null=True)
     DsaScore = models.FloatField(blank=True, null=True)
+    overallScore = models.FloatField(blank=True, null=True)
     recommendation = models.CharField(max_length=50, blank=True, null=True)
     strengths = models.TextField(blank=True, null=True)
     def __str__(self):
