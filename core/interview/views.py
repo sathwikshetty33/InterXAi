@@ -385,7 +385,7 @@ class ApplicationView(APIView):
             try:
                 response = llm.evaluate(req)
                 print("Resume extraction response:", response)
-                rawResume=extracted_text
+                application.rawResume=extracted_text
                 application.resume = resume_url
                 application.extratedResume = response.extracted_standardized_resume
                 application.score = response.score
