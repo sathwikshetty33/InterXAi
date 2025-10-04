@@ -17,4 +17,5 @@ urlpatterns = [
     path('get-dsa-questions/<int:id>/', views.SessionDsaQuestions.as_view(), name='get_dsa_questions'),
     path('add-dsa-scores/<int:id>/<int:dsa_id>/',views.SessionDsaQuestions.as_view(), name='add_dsa_scores'),
     path('res-question/<int:id>/',views.resumeQuestion.as_view(),name='resume_question'),
+    path('interview-images/<int:id>/', views.InterviewImagesView.as_view(), name='interview_images'),
 ]

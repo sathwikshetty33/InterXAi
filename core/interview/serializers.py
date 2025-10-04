@@ -242,14 +242,18 @@ class ResumeConvoSerializer(serializers.ModelSerializer):
         model = resumeconvo
         fields = ["id", "question", "expected_answer", "answer", "score", "feedback"]
         read_only_fields = ["id"]
-
+class InterviewImagesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InterviewImages
+        fields = ["id", "image_url", "uploaded_at"]
+        read_only_fields = ["id", "uploaded_at"]
 class LeaderBoardSerializer(serializers.ModelSerializer):
     Application = ApplicationSerializer(read_only=True)
     user = UserSerializer(read_only=True)
     session = InteractionSerializer(many=True)  # Fixed: should be many=True for related_name="session"
     dsa = DsaSessionSerializer(many=True, source='dsa_sessions')
     resume_conversations = ResumeConvoSerializer(many=True, source='interview_session')  # Add resume conversations
-
+    images = InterviewImagesSerializer(many=True)  # Add images
     class Meta:
         model = InterviewSession
         fields = [
@@ -269,6 +273,7 @@ class LeaderBoardSerializer(serializers.ModelSerializer):
             "session",
             "dsa",
             "resume_conversations",  # Add the new field
+            "images",
         ]
 
 class DSAQuestionsSerializer(serializers.ModelSerializer):

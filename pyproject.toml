@@ -14,6 +14,7 @@ dependencies = [
     "langchain-community>=0.3.27",
     "langchain-groq>=0.3.5",
     "langgraph>=0.5.1",
+    "moviepy>=2.2.1",
     "pypdf2>=3.0.1",
     "whitenoise>=6.9.0",
 ]

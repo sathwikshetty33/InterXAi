@@ -609,3 +609,30 @@ class resumeQuestion(APIView):
             "completed" : False,
             "question": convo1.question
         }, status=status.HTTP_201_CREATED)
+
+class InterviewImagesView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def post(self, request, id):
+        try:
+            session = InterviewSession.objects.get(id=id)
+        except InterviewSession.DoesNotExist:
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+        if request.user != session.Application.user:
+            return Response({"error": "You do not have permission to access this session."}, status=status.HTTP_403_FORBIDDEN)
+        
+        image_url = request.data.get("image_url")
+        if not image_url:
+            return Response({"error": "Missing image URL."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        interview_image = InterviewImages.objects.create(
+            sesssion=session,
+            image_url=image_url
+        )
+        
+        return Response({
+            "message": "Image uploaded successfully.",
+            "image_id": interview_image.id,
+            "image_url": interview_image.image_url
+        }, status=status.HTTP_201_CREATED)
