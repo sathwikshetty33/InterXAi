@@ -52,6 +52,11 @@ const VIOLATION_COPY: Record<string, string> = {
   camera_lost: "Camera feed lost",
 };
 
+interface Warning {
+  text: string;
+  counted: boolean;
+}
+
 interface ProctorWidgetProps {
   sessionId: number;
   token: string;
@@ -76,7 +81,7 @@ export default function ProctorWidget({
   const [detectorReady, setDetectorReady] = useState(false);
   const [count, setCount] = useState(0);
   const [threshold, setThreshold] = useState(0);
-  const [warning, setWarning] = useState<string | null>(null);
+  const [warning, setWarning] = useState<Warning | null>(null);
 
   // Acquire the camera once; release its tracks on unmount.
   useEffect(() => {
@@ -185,7 +190,10 @@ export default function ProctorWidget({
       // Authoritative: this clears an optimistic local warning it disagrees with.
       setWarning(
         res.violation
-          ? (VIOLATION_COPY[res.violation] ?? "Proctoring violation")
+          ? {
+              text: VIOLATION_COPY[res.violation] ?? "Proctoring violation",
+              counted: true,
+            }
           : null,
       );
       if (res.status !== "ongoing") {
@@ -223,9 +231,13 @@ export default function ProctorWidget({
         setWarning(
           faces === 1
             ? null
-            : faces === 0
-              ? VIOLATION_COPY.no_face
-              : VIOLATION_COPY.multiple_faces,
+            : {
+                text:
+                  faces === 0
+                    ? VIOLATION_COPY.no_face
+                    : VIOLATION_COPY.multiple_faces,
+                counted: false,
+              },
         );
         const elapsed = performance.now() - lastPostRef.current;
         if (
@@ -293,9 +305,9 @@ export default function ProctorWidget({
                 lineHeight: 1.3,
               }}
             >
-              {warning}
+              {warning.text}
             </div>
-            {threshold > 0 && (
+            {warning.counted && threshold > 0 ? (
               <div
                 style={{
                   fontSize: 11,
@@ -305,6 +317,16 @@ export default function ProctorWidget({
                 }}
               >
                 warning {Math.min(count, threshold)} of {threshold}
+              </div>
+            ) : (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--muted)",
+                  marginTop: 2,
+                }}
+              >
+                Not counted yet — fix it now
               </div>
             )}
           </div>
