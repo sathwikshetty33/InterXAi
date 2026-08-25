@@ -127,13 +127,26 @@ async def get_applied_interviews(
     `status` is derived from the application's shortlisting decision —
     "approved" once the org (or the resume screener) has shortlisted the
     candidate, "pending" otherwise. The raw Application.status column is
-    deliberately NOT used: nothing ever transitions it past "applied", and
-    the dashboard gates the "Attempt Interview" button on "approved".
+    deliberately NOT used: nothing ever transitions it past "applied".
+
+    `session_status` carries the candidate's attempt: null when they have never
+    started, otherwise the session's status. The dashboard needs both — being
+    shortlisted is what makes an interview attemptable, but an existing session
+    (ongoing OR terminal) means the attempt is already spent, and `/start`
+    rejects a second one.
     """
     logger.info("Get applied interviews request for user: %d", current_user.id)
 
+    session_status = (
+        select(InterviewSession.status)
+        .where(InterviewSession.application_id == Application.id)
+        .order_by(InterviewSession.id.desc())
+        .limit(1)
+        .scalar_subquery()
+    )
+
     stmt = (
-        select(CustomInterview, Application.shortlisting_decision)
+        select(CustomInterview, Application.shortlisting_decision, session_status)
         .join(Application, CustomInterview.id == Application.interview_id)
         .where(Application.user_id == current_user.id)
     )
@@ -141,9 +154,10 @@ async def get_applied_interviews(
     result = await db.execute(stmt)
 
     applied_interviews = []
-    for interview, shortlisted in result:
+    for interview, shortlisted, attempt_status in result:
         data = CustomInterviewBasicResponse.model_validate(interview).model_dump()
         data["status"] = "approved" if shortlisted else "pending"
+        data["session_status"] = attempt_status
         applied_interviews.append(AppliedInterviewResponse(**data))
 
     return applied_interviews

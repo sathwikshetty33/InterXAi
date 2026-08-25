@@ -106,3 +106,4 @@ class CustomInterviewBasicResponse(BaseModel):
 
 class AppliedInterviewResponse(CustomInterviewBasicResponse):
     status: str
+    session_status: str | None = None

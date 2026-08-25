@@ -45,6 +45,33 @@ const STATUS_STYLES: Record<
   },
 };
 
+const SPENT_ATTEMPT_COPY: Record<string, string> = {
+  scheduled: "Attempt in progress",
+  ongoing: "Attempt in progress",
+  completed: "Attempt submitted",
+  cancelled: "Attempt cancelled",
+  cheated: "Attempt ended — flagged by proctoring",
+  disqualified: "Attempt ended — disqualified",
+};
+
+type AttemptState =
+  | { kind: "attemptable" }
+  | { kind: "waiting" }
+  | { kind: "spent"; label: string };
+
+function attemptState(interview: AppliedInterview): AttemptState {
+  if (interview.session_status) {
+    return {
+      kind: "spent",
+      label:
+        SPENT_ATTEMPT_COPY[interview.session_status] ?? "Attempt already used",
+    };
+  }
+  return interview.status === "approved"
+    ? { kind: "attemptable" }
+    : { kind: "waiting" };
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric",
@@ -661,36 +688,45 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
             {/* Detail panel action button */}
             {"status" in selectedInterview ? (
-              // Applied interview — only show Attempt if approved by org
-              (selectedInterview as AppliedInterview).status === "approved" ? (
-                <Button
-                  id="detail-attempt-btn"
-                  variant="signal"
-                  size="lg"
-                  onClick={() => onAttemptInterview?.(selectedInterview.id)}
-                  style={{ marginTop: 18, width: "100%" }}
-                >
-                  Attempt interview
-                  <ArrowIcon />
-                </Button>
-              ) : (
-                <div
-                  style={{
-                    marginTop: 18,
-                    width: "100%",
-                    background: "var(--surface-2)",
-                    border: "1px solid var(--line)",
-                    borderRadius: 99,
-                    padding: "12px 22px",
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    color: "var(--muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  Waiting for org approval
-                </div>
-              )
+              (() => {
+                const state = attemptState(
+                  selectedInterview as AppliedInterview,
+                );
+                if (state.kind === "attemptable") {
+                  return (
+                    <Button
+                      id="detail-attempt-btn"
+                      variant="signal"
+                      size="lg"
+                      onClick={() => onAttemptInterview?.(selectedInterview.id)}
+                      style={{ marginTop: 18, width: "100%" }}
+                    >
+                      Attempt interview
+                      <ArrowIcon />
+                    </Button>
+                  );
+                }
+                return (
+                  <div
+                    style={{
+                      marginTop: 18,
+                      width: "100%",
+                      background: "var(--surface-2)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 99,
+                      padding: "12px 22px",
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: "var(--muted)",
+                      textAlign: "center",
+                    }}
+                  >
+                    {state.kind === "waiting"
+                      ? "Waiting for org approval"
+                      : state.label}
+                  </div>
+                );
+              })()
             ) : (
               // Available interview — show Apply
               <Button
@@ -1234,19 +1270,39 @@ const AppliedCard: React.FC<{
       <div style={cardFooterMeta}>
         <ClockIcon /> Deadline: {formatDate(interview.submission_deadline)}
       </div>
-      {interview.status === "approved" && (
-        <Button
-          variant="signal"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAttempt();
-          }}
-        >
-          Attempt
-          <ArrowIcon />
-        </Button>
-      )}
+      {(() => {
+        const state = attemptState(interview);
+        if (state.kind === "attemptable") {
+          return (
+            <Button
+              variant="signal"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAttempt();
+              }}
+            >
+              Attempt
+              <ArrowIcon />
+            </Button>
+          );
+        }
+        if (state.kind === "spent") {
+          return (
+            <span
+              style={{
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: "var(--muted)",
+                flexShrink: 0,
+              }}
+            >
+              {state.label}
+            </span>
+          );
+        }
+        return null;
+      })()}
     </div>
   </div>
 );

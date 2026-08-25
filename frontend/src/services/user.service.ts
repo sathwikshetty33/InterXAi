@@ -81,6 +81,7 @@ export interface InterviewBasic {
 
 export interface AppliedInterview extends InterviewBasic {
   status: string;
+  session_status: string | null;
 }
 
 // ── Endpoints ─────────────────────────────────────────────────────────────────
